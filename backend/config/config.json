@@ -1,0 +1,37 @@
+{
+  "development": {
+    "username": "postgres",
+    "password": 1234,
+    "database": "postgresTest",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "port" : 5432,
+    "dialectOptions": {
+      "useUTC": false,
+      "dataString" : true,
+      "typeCast" : true
+    }
+  },
+  "pool": {
+    "max": 5,
+    "min": 0,
+    "acquire": 30000,
+    "idle": 10000
+  },
+  "test": {
+    "username": "postgres",
+    "password": 1234,
+    "database": "postgresTest",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "port" : 5432
+  },
+  "production": {
+    "username": "postgres",
+    "password": 1234,
+    "database": "postgresTest",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "port" : 5432
+  }
+}
