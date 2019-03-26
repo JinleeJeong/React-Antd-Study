@@ -1,11 +1,3 @@
-### create-react-app > Front && express-generator > Backend
-
-
-### ant Design >  import "antd/dist/antd.css"; && config-overrides.js >> Default Function Overriding
-
-
-### Source Tree Commit
-
 https://canvasjs.com/react-charts/drilldown-chart/
 
 recharts Victory 
