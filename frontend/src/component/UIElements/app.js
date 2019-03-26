@@ -94,7 +94,6 @@ class app extends Component {
       this.delete = this.delete.bind(this);
       this.confirmLogout = this.confirmLogout.bind(this);
       this.cancelLogout = this.cancelLogout.bind(this);
-      this.onChangeName = this.onChangeName.bind(this);
 
       this.columns = [
           {
@@ -180,10 +179,6 @@ class app extends Component {
     cancel = () => {
       this.setState({ editingKey: '' });
     };
-    saveaction = () => {
-      console.log("saveAction");
-    };
-
 
     save(form, key) {
       form.validateFields((error, row) => {
@@ -456,12 +451,6 @@ class app extends Component {
         
       }
       
-      onChangeName(e) {
-        this.setState({
-          name : e.target.value,
-        })
-      }
-      
       
       render() {
         // console.log(this.state.users);
@@ -532,7 +521,7 @@ class app extends Component {
 
                 <SubMenu
                   key="sub2"
-                  title={<span><Icon type="user" /><span>앱별 사용이력</span></span>}
+                  title={<span><Icon type="user" /><span>조회</span></span>}
                 >
                   <Menu.Item key="5"><Link to = {`/app`}/>앱별 사용이력</Menu.Item>
                   <Menu.Item key="6"><Link to = {`/ingang`}/>인강별 사용이력</Menu.Item>
@@ -540,9 +529,10 @@ class app extends Component {
                 </SubMenu>
 
                   <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
-                    <Icon type="logout"/>
+                    
                     
                     <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="Yes" cancelText="No">
+                        <Icon type="logout"/>
                         <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
                         <Link to = {`/`}/>                  
                     </Popconfirm>
@@ -555,12 +545,12 @@ class app extends Component {
             <Layout>
               <Header style={{ background: '#1DA57A', padding: 0 }} >
                 <Breadcrumb style={{ margin: '12px 0'}}>
-                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "3vh", fontWeight :"bolder", fontSize : "3.2vh"}}>앱별 사용이력</h1></Breadcrumb.Item>
+                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "4vh", fontWeight :"bolder", fontSize : "3.2vh"}}>앱별 사용이력</h1></Breadcrumb.Item>
                 </Breadcrumb>
               </Header>
 
 
-              <Content style={{ margin: '2vh 30px' }}>
+              <Content style={{ margin: '5vh 30px 30px 30px' }}>
                 <div>
                   
                   <RangePicker

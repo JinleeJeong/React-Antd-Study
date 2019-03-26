@@ -1,10 +1,8 @@
 import React, { Component } from 'react';
-import { Button, Form, Input, Icon, Checkbox } from 'antd';
-import { Redirect } from 'react-router-dom';
+import { Button, Form, Input, Icon, message } from 'antd';
 // import axios from 'axios';
 import './login.css';
 import axios from 'axios';
-import {Link} from 'react-router-dom';
 
 class login extends Component {
     constructor(props) {
@@ -31,16 +29,24 @@ class login extends Component {
         this.props.form.validateFields((err, values) => {
           if (!err) {
             console.log('Received values of form: ', values);
-            axios.post('http://localhost:8080/api/users/login', values)
+            axios.post('http://localhost:8080/api/admin/login', values, {withCredentials: true})
             .then(result => {
-                return <Redirect to ='/board/'/>
+                if(result.data !== 'failed') {
+                    console.log(result.data);
+                    return this.props.history.push('/main')
+
+                } else {
+                    console.log(result.data);
+                    message.error('사용자 정보를 확인해주세요.');
+                }
             })
             }
             else {
-                console.log(err);
+                message.error('접근 오류입니다.');
+                window.location.reload();
             }
         });
-        };
+    };
     
       render() {
         const { getFieldDecorator } = this.props.form;
@@ -48,33 +54,31 @@ class login extends Component {
         return (
             <div className = "login" style={{height : "100vh"}}>
                     <div style={{textAlign : "center"}} >
-                        <div style={{position:"relative", top:"40vh", display: "inline-block"}}>
+                        <div style={{position:"relative", top:"32vh", display: "inline-block", width : "40vh", height : "35vh", backgroundColor : "white", padding:"2.5vh"}}>
                             <Form onSubmit={this.handleSubmit} className="login-form">
                             <Form.Item>
-                            {getFieldDecorator('id', {
+                                    <div style ={{fontSize : "3vh", marginBottom :"2vh" }}>Log in</div>
+
+                            </Form.Item>
+                            <Form.Item>
+                            {getFieldDecorator('Email', {
                                 rules: [{ required: true, message: 'Please input your Id!' }],
                             })(
                                 <Input prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)' }} />} placeholder="서버 관리자" />
                             )}
                             </Form.Item>
                             <Form.Item>
-                            {getFieldDecorator('password', {
+                            {getFieldDecorator('Password', {
                                 rules: [{ required: true, message: 'Please input your Password!' }],
                             })(
                                 <Input prefix={<Icon type="lock" style={{ color: 'rgba(0,0,0,.25)' }} />} type="password" placeholder="관리자 비밀번호" />
                             )}
                             </Form.Item>
                             <Form.Item>
-                            {getFieldDecorator('remember', {
-                                valuePropName: 'checked',
-                                initialValue: true,
-                            })(
-                                <Checkbox style={{marginRight : "15vh"}}>Remember me</Checkbox>
-                            )}
-                            <Button style={{marginRight : "", float:"right"}} type="primary" htmlType="submit" className="login-form-button">
-                            <Link to="/main">
+                        
+                            <Button style={{width : "100%"}}type="primary" htmlType="submit" className="login-form-button">
                                 Log in
-                            </Link>
+
                             </Button>
                             </Form.Item>
                         </Form>
