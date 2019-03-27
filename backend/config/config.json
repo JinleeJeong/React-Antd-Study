@@ -1,9 +1,9 @@
 {
   "development": {
-    "username": "postgres",
-    "password": 1234,
-    "database": "postgresTest",
-    "host": "127.0.0.1",
+    "username": "testetoos",
+    "password": "tech8123",
+    "database": "mytestdb",
+    "host": "testetoosdb.c2rirrernrhc.ap-northeast-2.rds.amazonaws.com",
     "dialect": "postgres",
     "port" : 5432,
     "dialectOptions": {
@@ -19,18 +19,18 @@
     "idle": 10000
   },
   "test": {
-    "username": "postgres",
-    "password": 1234,
-    "database": "postgresTest",
-    "host": "127.0.0.1",
+    "username": "testetoos",
+    "password": "tech8123",
+    "database": "mytestdb",
+    "host": "testetoosdb.c2rirrernrhc.ap-northeast-2.rds.amazonaws.com",
     "dialect": "postgres",
     "port" : 5432
   },
   "production": {
-    "username": "postgres",
-    "password": 1234,
-    "database": "postgresTest",
-    "host": "127.0.0.1",
+    "username": "testetoos",
+    "password": "tech8123",
+    "database": "mytestdb",
+    "host": "testetoosdb.c2rirrernrhc.ap-northeast-2.rds.amazonaws.com",
     "dialect": "postgres",
     "port" : 5432
   }
