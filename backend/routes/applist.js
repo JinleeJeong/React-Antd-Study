@@ -10,7 +10,7 @@ var models = require("../models/index.js");
 //    console.error(err);
 // });
 /* GET users listing. */
-router.get('/true', (req,res,next) => {
+router.get('/false', (req,res,next) => {
   models.applist.findAll({where : { b_disabled : true}})
     .then((results) => {
       res.json(results);
@@ -20,7 +20,7 @@ router.get('/true', (req,res,next) => {
     });
 });
 
-router.get('/false', (req,res,next) => {
+router.get('/true', (req,res,next) => {
     models.applist.findAll({where : { b_disabled : false}})
       .then((results) => {
         res.json(results);
@@ -52,7 +52,7 @@ router.put('/update/:id', (req, res, next) => {
 router.put('/update/right/:id', (req, res, next) => {
   models.applist.update(
     {
-      disabled : false
+      b_disabled : true
     }, 
       {
         where : { idx : req.params.id }
@@ -65,7 +65,7 @@ router.put('/update/right/:id', (req, res, next) => {
 router.put('/update/left/:id', (req, res, next) => {
   models.applist.update(
     {
-      disabled : true
+      b_disabled : false
     }, 
       {
         where : { idx : req.params.id }

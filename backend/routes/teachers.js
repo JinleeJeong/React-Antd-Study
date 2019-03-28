@@ -3,24 +3,24 @@ var router = express.Router();
 var models = require("../models/index.js");
 
 /* GET users listing. */
-router.get('/', (req,res,next) => {
-  models.teachers.findAll()
-    .then((results) => {
-      res.json(results);
-    })
-    .catch(err => {
-      console.error(err);
-    });
-});
+// router.get('/', (req,res,next) => {
+//   models.teachers.findAll()
+//     .then((results) => {
+//       res.json(results);
+//     })
+//     .catch(err => {
+//       console.error(err);
+//     });
+// });
 
-  // models.teachers.create({Name: '홍씨', App: '9', Amount : 10, Teacher : "김백준"})
-  //   .then(result => {
-  //      res.json(result);
-  //   })
-  //   .catch(err => {
-  //      console.error(err);
-  // });
-/* UPDATE teachers */
+// models.teachers.create({id_tc: '홍씨', ip_tc: '9', token_tc : '10', name_tc : "김백준"})
+//   .then(result => {
+//     res.json(result);
+//   })
+//   .catch(err => {
+//     console.error(err);
+//   });
+// /* UPDATE teachers */
 
 router.put('/update/:id', (req, res, next) => {
   models.teachers.update(

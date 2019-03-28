@@ -7,6 +7,7 @@ module.exports = function (sequelize, DataTypes) {
         id_tc: { field: 'id_tc', type: DataTypes.STRING(50), allowNull: false , primaryKey : true},
         ip_tc: { field: 'ip_tc', type: DataTypes.STRING(50)},
         token_tc : { field : 'token_tc', type : DataTypes.STRING(100)},
+        name_tc: { field: 'name_tc', type: DataTypes.STRING(50)},
     }, {
       underscored: true,
       dateStrings: true,
