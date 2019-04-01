@@ -1,12 +1,15 @@
 import React, { Component } from 'react';
-import { Layout, Menu, Breadcrumb, Icon, Table, Button, Input, Form, InputNumber, Popconfirm, message} from 'antd';
+import { Layout, Menu, Breadcrumb, Icon, Table, Button, Input, DatePicker, Form, InputNumber, Popconfirm, message} from 'antd';
 import {Link} from 'react-router-dom';
 import Highlighter from 'react-highlight-words';
-import axios from 'axios'
-import Cookies from 'js-cookie'
+import moment from 'moment';
+import axios from 'axios';
+import Cookies from 'js-cookie';
+
 // -----------------------Layout
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
+const {RangePicker} = DatePicker;
 // -----------------------Layout
 
 // ----- Editer Func
@@ -20,10 +23,6 @@ const EditableRow = ({ form, index, ...props }) => (
 );
 
 const EditableFormRow = Form.create()(EditableRow);
-
-function hasErrors(fieldsError) {
-  return Object.keys(fieldsError).some(field => fieldsError[field]);
-}
 
 class EditableCell extends React.Component {
   getInput = () => {
@@ -54,7 +53,7 @@ class EditableCell extends React.Component {
                   {getFieldDecorator(dataIndex, {
                     rules: [{
                       required: true,
-                      message: `${title}을 입력하세요.`,
+                      message: `Please Input ${title}!`,
                     }],
                     initialValue: record[dataIndex],
                   })(this.getInput())}
@@ -69,7 +68,7 @@ class EditableCell extends React.Component {
 }
 // ----- Editer Func
 
-class settingIngang extends Component {
+class student extends Component {
     constructor(props) {
       super(props);
 
@@ -77,13 +76,16 @@ class settingIngang extends Component {
         users : [],
         collapsed: false,
         searchText: '',
+        startTime: '',
+        endTime: '',
+        startEndTime : [],
         selectedRowKeys : [],
+        usersTimes : [],
         sortingNumbersNon : [],
         sortingNumbers : [],
-        editingKey : '',
-
       }
       
+      this.onOk = this.onOk.bind(this);
       this.onChange = this.onChange.bind(this);
       this.delete = this.delete.bind(this);
       this.confirmLogout = this.confirmLogout.bind(this);
@@ -91,32 +93,60 @@ class settingIngang extends Component {
 
       this.columns = [
           {
-            title: '이름',
-            dataIndex: 'Name',
-            key: 'Name',
-            width: '40%',
+            title: '학생명',
+            dataIndex: 'id_st',
+            key: 'id_st',
+            width: '18%',
             editable: true,
-            ...this.getColumnSearchProps('Name'),
-            sorter: (a,b) => this.compStringReverse(a.Name, b.Name),
+            ...this.getColumnSearchProps('id_st'),
+            sorter: (a,b) => this.compStringReverse(a.id_st, b.id_st),
             defaultSortOrder: 'descend',
-            
           }, 
-          
           {
-            title: '앱 번호',
-            dataIndex: 'App',
-            width: '40%',
+            title: '담당 강사',
+            dataIndex: 'id_tc',
+            key: 'id_tc',
+            width: '18%',
             editable: true,
-            key: 'App',
-            ...this.getColumnSearchProps('App'),
-            sorter: (a, b) => this.compStringReverse(a.Name, b.Name),
+            ...this.getColumnSearchProps('id_tc'),
+            sorter: (a,b) => this.compStringReverse(a.id_tc, b.id_tc),
+          },
+          {
+            title: '앱 이름',
+            dataIndex: 'name_app',
+            width: '18%',
+            editable: true,
+            key: 'name_app',
+            ...this.getColumnSearchProps('name_app'),
+            sorter: (a, b) => this.compStringReverse(a.name_app, b.name_app),
           }, 
-
+            
+          {
+              title: '앱 ID',
+              dataIndex: 'id_app',
+              width: '18%',
+              editable: true,
+              key: 'id_app',
+              ...this.getColumnSearchProps('id_app'),
+              sorter: (a, b) => this.compStringReverse(a.id_app, b.id_app),
+          },   
+          {
+            title: '총사용량',
+            dataIndex: 'startTime',
+            width: '18%',
+            editable: true,
+            key: 'startTime',
+            ...this.getColumnSearchProps('startTime'),
+            sorter: (a, b) => this.compStringReverse(a.startTime, b.startTime),
+            sortDirections: ['descend', 'ascend'],
+        },   
+              
         // -----------------------------Operation
         {
           title: '수정',
           dataIndex: 'operation',
           render: (text, record) => {
+            
             const editable = this.isEditing(record);
             return (
               <div>
@@ -162,6 +192,10 @@ class settingIngang extends Component {
     cancel = () => {
       this.setState({ editingKey: '' });
     };
+    saveaction = () => {
+      console.log("saveAction");
+    };
+
 
     save(form, key) {
       form.validateFields((error, row) => {
@@ -179,40 +213,50 @@ class settingIngang extends Component {
           });
           this.setState({ users: newData, editingKey: '' });
 
-          console.log('Key : ', key)
-
           const updateobj = {
-            Name : newData[index].Name,
-            App : newData[index].App,
-            Amount : newData[index].Amount
+            id_st : newData[index].id_st,
+            id_tc : newData[index].id_tc,
+            name_app : newData[index].name_app,
+            id_app : newData[index].id_app,
+            startTime : newData[index].startTime
           }
 
           console.log(updateobj);
-          axios.put(`http://localhost:8080/api/users/update/${key}`, updateobj)
+          axios.put(`http://localhost:8080/api/sp/members/${key}`, updateobj)
           .then(res => console.log(res));
-        }
-        else {
+        } else {
           newData.push(row);
           this.setState({ users: newData, editingKey: '' });
         }
       });
     }
-
-    
     edit(key) {
-      const {editingKey} = this.state
-      this.setState({ editingKey: key }, () => {console.log(editingKey)});
+      this.setState({ editingKey: key });
     }
     // ---------------------------------Edit Result or Change State
     componentDidMount(){
-
-      
-      axios.get('http://localhost:8080/api/users')
+      axios.get('http://localhost:8080/api/sp/stusg')
       .then(res => {
+        for ( let i = 0 ; i < res.data.length ; i++){
+          res.data[i].key = res.data[i]['idx'];
+          delete res.data[i].idx;
+
+          var startDate = new Date(res.data[i]['starttime']);
+          var resultStartDate = moment(startDate);
+          resultStartDate = resultStartDate.format('YYYY/MM/DD hh:mm');
+          res.data[i].startTime = resultStartDate;
+          delete res.data[i].starttime;
+
+          var endDate = new Date(res.data[i]['endtime']);
+          var resultEndDate = moment(endDate);
+          resultEndDate = resultEndDate.format('YYYY/MM/DD hh:mm');
+          res.data[i].endTime = resultEndDate
+          delete res.data[i].endtime;
+      
+        }
         this.setState({
           users : res.data,
-        }, () => {
-          })
+        })
         });
   }
 
@@ -221,12 +265,96 @@ class settingIngang extends Component {
       this.setState({ collapsed });
     }
 
-  // sorting 
+// sorting 
     onChange = (value, dateString) => {
       // console.log('Selected Time: ', value);
       // console.log('Formatted Selected Time: ', dateString);
     }
     
+    onOk = (value) => {
+      var a = new Date(value[0]).getTime();
+      var b = new Date(value[1]).getTime();
+      // getTime Function : Date > milliseconds
+      if(a!== b){
+      const {startEndTime, users} = this.state
+      
+      this.setState({
+        startTime : value[0],
+        endTime : value[1]
+      }, function() {
+        var firstDate = moment(this.state.startTime._d, 'YYYY/M/D HH:mm')
+        var finishDate = moment(this.state.endTime._d, 'YYYY/M/D HH:mm')
+        var dates = [];
+        firstDate = firstDate.format('YYYY/M/D HH:mm');
+        finishDate = finishDate.format('YYYY/M/D HH:mm');
+        dates.push(firstDate);
+        dates.push(finishDate);
+        this.setState({
+          startEndTime : dates,
+        }, () => {
+          console.log(startEndTime);
+        })
+            // ------------------------------------------------startEndTime setState
+
+        var userTimesSet = [];
+        var sortingNumbers = [];
+        var sortingNumbersNon = [];
+          
+          for(let i = 0; i < users.length ; i++){
+            userTimesSet = (users.map(users => users.startTime));
+          }
+          this.setState({
+            userTimes : userTimesSet,
+          }, () => 
+                  {
+                    for( let i = 0 ;i < users.length ; i++){
+                      
+                      userTimesSet[i] = moment(userTimesSet[i]).format('YYYY/MM/DD HH:mm');
+                      if(moment(userTimesSet[i]).isSameOrAfter(firstDate)){
+                        if(moment(userTimesSet[i]).isSameOrBefore(finishDate)){
+                          sortingNumbers.push(userTimesSet[i]);
+                        } 
+                        else{
+                          sortingNumbersNon.push(userTimesSet[i]);
+                          console.log('not Before')
+                        }
+                      }
+                      else {
+                        sortingNumbersNon.push(userTimesSet[i]);
+                        console.log('not After')
+                      }
+                    }
+
+                    this.setState({
+                      sortingNumbers : sortingNumbers,
+                      sortingNumbersNon : sortingNumbersNon
+                    }, () => { 
+                      const { users, sortingNumbers, sortingNumbersNon } = this.state
+                      console.log('SortingNumbers : ' + sortingNumbers );
+                      console.log('SortingNumbersNon : ' + sortingNumbersNon );
+                      function arrFilter(users) {
+                        for(let i = 0; i < sortingNumbers.length; i++){
+                          if(users.startTime === sortingNumbers[i]){
+                            return true;
+                          }
+                        }
+                        return false;
+                      }
+
+                      var sortingDates = users.filter(arrFilter);
+                      this.setState({
+                        users : sortingDates
+                      })
+                    }
+                  )
+                })
+              });
+              
+            }
+      else (
+        alert('시간을 확인해주세요.')
+      )
+}
 
     // -------------------table
       getColumnSearchProps = (dataIndex) => ({
@@ -294,27 +422,27 @@ class settingIngang extends Component {
 
       // -------------------table
 
-    
+      logout = () => {
+        console.log("logout");
+      }
 
-       // ============================= 로그아웃 
-
-    confirmLogout = (e) =>{
-      axios.get('http://localhost:8080/api/sp/logout')
-            .then(res => console.log(res.data));
-
-      Cookies.remove('admin');
-      message.success('로그아웃 성공했습니다.');
-
-      setTimeout(() => {
-        return this.props.history.push('/')
-      }, 1000)
-
-    };
-    
-    cancelLogout = (e) => {
-      message.error('로그아웃 취소');
-    }
-    // ============================= 로그아웃
+      confirmLogout = (e) =>{
+        axios.get('http://localhost:8080/api/sp/logout')
+              .then(res => console.log(res.data));
+  
+        Cookies.remove('admin');
+        message.success('로그아웃 성공했습니다.');
+  
+        setTimeout(() => {
+          return this.props.history.push('/')
+        }, 1000)
+  
+      };
+      
+      cancelLogout = (e) => {
+        message.error('로그아웃 취소');
+      }
+      // ============================= 로그아웃
 
       onChangePicker = (pagination, filters, sorter) => {
         console.log('params', pagination, filters, sorter);
@@ -352,7 +480,7 @@ class settingIngang extends Component {
 
         for(let j = 0 ; j < selectedRowKeys.length ; j++)
         {
-          axios.delete(`http://localhost:8080/api/users/delete/${key[j]}`)
+          axios.delete(`http://localhost:8080/api/sp/stusg/delete/${key[j]}`)
           .then(res => {
             console.log(res);
           })
@@ -360,28 +488,12 @@ class settingIngang extends Component {
             console.log(err);
           })
         }
-        
       }
       
-       handleSubmit = (e) => {
-        e.preventDefault();
-        this.props.form.validateFields((err, values) => {
-          if (!err) {
-            console.log('Received values of form: ', values);
-            if(values.hasOwnProperty('Name')){
-              console.log(values.Name)
-            }
-          }
-        });
-      }
-
+      
+      
       render() {
-        const {
-          getFieldDecorator, getFieldsError, getFieldError, isFieldTouched,
-        } = this.props.form;
-        const appNameError = isFieldTouched('Name') && getFieldError('Name');
-        const appIdError = isFieldTouched('Id') && getFieldError('Id');
-
+        // console.log(this.state.users);
         const components = {
           body: {
             row: EditableFormRow,
@@ -396,7 +508,7 @@ class settingIngang extends Component {
             ...col,
             onCell: record => ({
               record,
-              inputType: col.dataIndex === 'App' ? 'text' : 'text',
+              inputType: col.dataIndex === 'App' ? 'number' : 'text',
               dataIndex: col.dataIndex,
               title: col.title,
               editing: this.isEditing(record),
@@ -412,8 +524,16 @@ class settingIngang extends Component {
               console.log(this.state.selectedRowKeys);
             })
           } 
+            
+          // getCheckboxProps: record => ({
+          //   disabled: record.name === 'Disabled User', // Column configuration not to be checked
+          //   name: record.name,
+          // }),
         };
-
+        
+        console.log(this.state.startEndTime);
+        console.log(this.state.users);
+        console.log(this.state.usersTimes);
         const hasSelected = this.state.selectedRowKeys.length > 0;
         return (
           <Layout style={{ minHeight: '100vh' }}>
@@ -423,7 +543,7 @@ class settingIngang extends Component {
               onCollapse={this.onCollapse}
             >
               <div className="App-logo" />
-              <Menu theme="dark" defaultSelectedKeys={['3']} mode="inline" style={{maxHeight:"898px"}}>
+              <Menu theme="dark" defaultSelectedKeys={['7']} mode="inline" style={{maxHeight:"898px"}}>
 
                 <Menu.Item key = "1" style= {{marginTop: '32%'}}>
                     <Icon type="pie-chart" /> <span>대시보드</span>
@@ -454,7 +574,7 @@ class settingIngang extends Component {
                     <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="Yes" cancelText="No">
                         <Icon type="logout"/>
                         <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
-                        <Link to = {`/`}/>                  
+                        <Link to = {`/`}/>                 
                     </Popconfirm>
 
                   </Menu.Item>
@@ -465,19 +585,25 @@ class settingIngang extends Component {
             <Layout>
               <Header style={{ background: '#1DA57A', padding: 0 }} >
                 <Breadcrumb style={{ margin: '12px 0'}}>
-                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "4vh", fontWeight :"bolder", fontSize : "3.2vh"}}>타 인강 목록</h1></Breadcrumb.Item>
+                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "4vh", fontWeight :"bolder", fontSize : "3.2vh"}}>학생별 사용이력</h1></Breadcrumb.Item>
                 </Breadcrumb>
               </Header>
 
+
               <Content style={{ margin: '5vh 30px 30px 30px' }}>
-                
+                <div>
+                  
+                  <RangePicker
+                    showTime={{ format: 'HH:mm' }}
+                    format="YYYY-MM-DD HH:mm"
+                    placeholder={['날짜 선택', '날짜 선택']}
+                    onChange={this.onChangePicker}
+                    onOk={this.onOk}
+                    style={{margin : '1% 0 1% 0'}}
+                  />
+                </div>
+
                 <div style={{ padding: 11, background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
-                <div style={{float:"left"}}>
-                  <Button style={{top : "0.5vh"}} type="primary" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
-                </div>
-                <div style={{marginRight : "20vh",textAlign : "center", marginBottom:"1.5vh", fontWeight : "600", fontSize : "2vh", marginTop : "1vh"}}>
-                  타 인강 목록
-                </div>
                 <Table
                     components={components}
                     bordered
@@ -491,48 +617,18 @@ class settingIngang extends Component {
                     onChange = {this.onChange}
                      rowkey={record => record.uid}
                   />
-                
-
-                <Form layout="inline" onSubmit={this.handleSubmit} style={{marginLeft: "4%"}}>
-                  <Form.Item
-                    validateStatus={appNameError ? 'error' : ''}
-                    help={appNameError || ''}
-                  >
-                    {getFieldDecorator('Name', {
-                      rules: [{ required: true, message: '앱 이름을 입력하세요.' }],
-                    })(
-                      <Input style={{width: "65vh"}} placeholder="입력" />
-                    )}
-                  </Form.Item>
-                  <Form.Item
-                    validateStatus={appIdError ? 'error' : ''}
-                    help={appIdError || ''}
-                  >
-                    {getFieldDecorator('Id', {
-                      rules: [{ required: true, message: '앱 번호를 입력하세요.' }],
-                    })(
-                      <Input style={{width: "65vh"}} placeholder="입력" />
-                    )}
-                  </Form.Item>
-                  <Form.Item style={{float: "right"}}>
-                      
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        
-                        disabled={hasErrors(getFieldsError())}
-                      >
-                        Log in
-                      </Button>
-
-                  </Form.Item>
-                </Form>
+                </div>
+                <div style={{float:"right"}}>
+                  <Button type="primary" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
                 </div>
               </Content>
+              
             </Layout>
           </Layout>
     
         );
       }
     }
-export default Form.create()(settingIngang);
+    
+
+export default student;

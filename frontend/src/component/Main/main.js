@@ -75,22 +75,18 @@ class main extends Component {
     
 
     componentDidMount(){
+      
     };
 
-    onClick = () =>{
-        console.log("Direct Board");
-    }
     onCollapse = (collapsed) => {
         console.log(collapsed);
         this.setState({ collapsed });
       }
-    // collapsed : SideBar True || False
-
 
     // ============================= 로그아웃 
 
     confirmLogout = (e) =>{
-      axios.get('http://localhost:8080/api/admins/logout')
+      axios.get('http://localhost:8080/api/sp/logout')
             .then(res => console.log(res.data));
 
       Cookies.remove('admin');
@@ -98,13 +94,12 @@ class main extends Component {
 
       setTimeout(() => {
         return this.props.history.push('/')
-      }, 1500)
+      }, 1000)
 
     };
     
     cancelLogout = (e) => {
-      console.log(e);
-      message.error('Click on No');
+      message.error('로그아웃 취소');
     }
     // ============================= 로그아웃
 
@@ -141,7 +136,7 @@ class main extends Component {
                 >
                   <Menu.Item key="5"><Link to = {`/app`}/>앱별 사용이력</Menu.Item>
                   <Menu.Item key="6"><Link to = {`/ingang`}/>인강별 사용이력</Menu.Item>
-                  <Menu.Item key="7"><Link to = {`/board`}/>학생별 사용이력</Menu.Item>
+                  <Menu.Item key="7"><Link to = {`/student`}/>학생별 사용이력</Menu.Item>
                 </SubMenu>
 
                 <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>

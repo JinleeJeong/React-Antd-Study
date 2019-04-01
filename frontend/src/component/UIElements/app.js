@@ -3,8 +3,8 @@ import { Layout, Menu, Breadcrumb, Icon, Table, Button, Input, DatePicker, Form,
 import {Link} from 'react-router-dom';
 import Highlighter from 'react-highlight-words';
 import moment from 'moment';
-import axios from 'axios'
-
+import axios from 'axios';
+import Cookies from 'js-cookie';
 // -----------------------Layout
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
@@ -71,6 +71,7 @@ class app extends Component {
     constructor(props) {
       super(props);
 
+      this._isMounted = false;
       this.state = {
         users : [],
         collapsed: false,
@@ -79,14 +80,10 @@ class app extends Component {
         endTime: '',
         startEndTime : [],
         selectedRowKeys : [],
-        usersTimes : [],
+        userTimes : [],
         sortingNumbersNon : [],
         sortingNumbers : [],
         editingKey : '',
-        name : '',
-        app : '',
-        totalused : '',
-
       }
       
       this.onOk = this.onOk.bind(this);
@@ -97,37 +94,26 @@ class app extends Component {
 
       this.columns = [
           {
-            title: '이름',
-            dataIndex: 'Name',
-            key: 'Name',
+            title: '앱 이름',
+            dataIndex: 'name_app',
+            key: 'name_app',
             width: '25%',
             editable: true,
-            ...this.getColumnSearchProps('Name'),
-            sorter: (a,b) => this.compStringReverse(a.Name, b.Name),
+            ...this.getColumnSearchProps('name_app'),
+            sorter: (a,b) => this.compStringReverse(a.name_app, b.name_app),
             defaultSortOrder: 'descend',
             
           }, 
           
           {
-            title: '앱 번호',
-            dataIndex: 'App',
+            title: '앱 ID',
+            dataIndex: 'id_app',
             width: '25%',
             editable: true,
-            key: 'App',
-            ...this.getColumnSearchProps('App'),
-            sorter: (a, b) => a.App - b.App,
+            key: 'id_app',
+            ...this.getColumnSearchProps('id_app'),
+            sorter: (a, b) => this.compStringReverse(a.id_app - b.id_app),
           }, 
-            
-          {
-              title: '총사용량',
-              dataIndex: 'Amount',
-              width: '25%',
-              editable: true,
-              key: 'Amount',
-              ...this.getColumnSearchProps('App'),
-              sorter: (a, b) => a.Amount - b.Amount,
-              sortDirections: ['descend', 'ascend'],
-          },   
               
         // -----------------------------Operation
         {
@@ -199,13 +185,13 @@ class app extends Component {
           console.log('Key : ', key)
 
           const updateobj = {
-            Name : newData[index].Name,
-            App : newData[index].App,
-            Amount : newData[index].Amount
+            name_app : newData[index].name_app,
+            id_app : newData[index].id_app,
+            starttime : newData[index].startTime
           }
 
           console.log(updateobj);
-          axios.put(`http://localhost:8080/api/users/update/${key}`, updateobj)
+          axios.put(`http://localhost:8080/api/sp/all/${key}`, updateobj)
           .then(res => console.log(res));
         }
         else {
@@ -222,13 +208,34 @@ class app extends Component {
     }
     // ---------------------------------Edit Result or Change State
     componentDidMount(){
-      axios.get('http://localhost:8080/api/users')
+      this._isMounted = true;
+      axios.get('http://localhost:8080/api/sp/all')
       .then(res => {
+
+        for ( let i = 0 ; i < res.data.length ; i++){
+          res.data[i].key = res.data[i]['idx'];
+          delete res.data[i].idx;
+
+          var startDate = new Date(res.data[i]['starttime']);
+          var resultStartDate = moment(startDate);
+          resultStartDate = resultStartDate.format('YYYY/MM/DD hh:mm');
+          res.data[i].startTime = resultStartDate;
+          delete res.data[i].starttime;
+
+          var endDate = new Date(res.data[i]['endtime']);
+          var resultEndDate = moment(endDate);
+          resultEndDate = resultEndDate.format('YYYY/MM/DD hh:mm');
+          res.data[i].endTime = resultEndDate
+          delete res.data[i].endtime;
+      
+        }
         this.setState({
           users : res.data,
-        }, () => {
-          })
-        });
+        })
+    });
+  }
+  componentWillMount(){
+    this._isMounted = false;
   }
 
     onCollapse = (collapsed) => {
@@ -248,6 +255,7 @@ class app extends Component {
       // getTime Function : Date > milliseconds
       if(a!== b){
       const {startEndTime, users} = this.state
+      
       this.setState({
         startTime : value[0],
         endTime : value[1]
@@ -265,44 +273,46 @@ class app extends Component {
           console.log(startEndTime);
         })
             // ------------------------------------------------startEndTime setState
-        var usersTimes = [];
+
+        var userTimesSet = [];
         var sortingNumbers = [];
         var sortingNumbersNon = [];
-          usersTimes = users.map(users => users.created_at);
+          
+          for(let i = 0; i < users.length ; i++){
+            userTimesSet = (users.map(users => users.startTime));
+          }
           this.setState({
-            usersTimes : usersTimes,
+            userTimes : userTimesSet,
           }, () => 
                   {
                     for( let i = 0 ;i < users.length ; i++){
-                      usersTimes[i] = moment(usersTimes[i]).toISOString();
-                      if(moment(usersTimes[i]).isSameOrAfter(firstDate)){
-                        if(moment(usersTimes[i]).isSameOrBefore(finishDate)){
-                          sortingNumbers.push(usersTimes[i]);
+                      
+                      userTimesSet[i] = moment(userTimesSet[i]).format('YYYY/MM/DD HH:mm');
+                      if(moment(userTimesSet[i]).isSameOrAfter(firstDate)){
+                        if(moment(userTimesSet[i]).isSameOrBefore(finishDate)){
+                          sortingNumbers.push(userTimesSet[i]);
                         } 
                         else{
-                          sortingNumbersNon.push(usersTimes[i]);
+                          sortingNumbersNon.push(userTimesSet[i]);
                           console.log('not Before')
                         }
                       }
                       else {
-                        sortingNumbersNon.push(usersTimes[i]);
+                        sortingNumbersNon.push(userTimesSet[i]);
                         console.log('not After')
                       }
                     }
-                    // sortingNumber > Start End 일치하는 배열, sortingNumberNon 불일치하는 배열
 
                     this.setState({
                       sortingNumbers : sortingNumbers,
                       sortingNumbersNon : sortingNumbersNon
                     }, () => { 
                       const { users, sortingNumbers, sortingNumbersNon } = this.state
-
                       console.log('SortingNumbers : ' + sortingNumbers );
                       console.log('SortingNumbersNon : ' + sortingNumbersNon );
-                      
                       function arrFilter(users) {
                         for(let i = 0; i < sortingNumbers.length; i++){
-                          if(users.created_at === sortingNumbers[i]){
+                          if(users.startTime === sortingNumbers[i]){
                             return true;
                           }
                         }
@@ -310,7 +320,6 @@ class app extends Component {
                       }
 
                       var sortingDates = users.filter(arrFilter);
-                      
                       this.setState({
                         users : sortingDates
                       })
@@ -391,18 +400,23 @@ class app extends Component {
 
       // -------------------table
 
-      logout = () => {
-        console.log("logout");
-      }
-
       confirmLogout = (e) =>{
-        this.props.history.push('/');
+        axios.get('http://localhost:8080/api/sp/logout')
+              .then(res => console.log(res.data));
+  
+        Cookies.remove('admin');
+        message.success('로그아웃 성공했습니다.');
+  
+        setTimeout(() => {
+          return this.props.history.push('/')
+        }, 1000)
+  
       };
       
       cancelLogout = (e) => {
-        console.log(e);
-        message.error('Click on No');
+        message.error('로그아웃 취소');
       }
+      // ============================= 로그아웃
 
       onChangePicker = (pagination, filters, sorter) => {
         console.log('params', pagination, filters, sorter);
@@ -440,7 +454,7 @@ class app extends Component {
 
         for(let j = 0 ; j < selectedRowKeys.length ; j++)
         {
-          axios.delete(`http://localhost:8080/api/users/delete/${key[j]}`)
+          axios.delete(`http://localhost:8080/api/sp/stlogs/delete/${key[j]}`)
           .then(res => {
             console.log(res);
           })
@@ -453,7 +467,7 @@ class app extends Component {
       
       
       render() {
-        // console.log(this.state.users);
+        const hasSelected = this.state.selectedRowKeys.length > 0;
         const components = {
           body: {
             row: EditableFormRow,
@@ -491,10 +505,8 @@ class app extends Component {
           // }),
         };
         
-        // console.log(this.state.startEndTime);
-        console.log(this.state.users);
-        // console.log(this.state.usersTimes);
-        const hasSelected = this.state.selectedRowKeys.length > 0;
+        console.log('users :',  this.state.users);
+
         return (
           <Layout style={{ minHeight: '100vh' }}>
             <Sider
@@ -525,7 +537,7 @@ class app extends Component {
                 >
                   <Menu.Item key="5"><Link to = {`/app`}/>앱별 사용이력</Menu.Item>
                   <Menu.Item key="6"><Link to = {`/ingang`}/>인강별 사용이력</Menu.Item>
-                  <Menu.Item key="7"><Link to = {`/board`}/>학생별 사용이력</Menu.Item>
+                  <Menu.Item key="7"><Link to = {`/student`}/>학생별 사용이력</Menu.Item>
                 </SubMenu>
 
                   <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
