@@ -61,9 +61,6 @@ app.use('/api/sp/stlogs', stlogs);
 app.use('/api/sp/', stsettings);
 app.use('/api/sp/', students);
 app.use('/api/sp/', teachers);
-
-
-
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
