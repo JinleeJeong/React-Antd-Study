@@ -13,15 +13,6 @@ router.get('/', (req,res,next) => {
     });
 });
 
-  // models.students.create({Name: '홍씨', App: '9', Amount : 10, Teacher : "김백준"})
-  //   .then(result => {
-  //      res.json(result);
-  //   })
-  //   .catch(err => {
-  //      console.error(err);
-  // });
-/* UPDATE students */
-
 router.put('/update/:id', (req, res, next) => {
   models.students.update(
     {
