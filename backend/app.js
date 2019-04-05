@@ -8,7 +8,6 @@ var body = require('body-parser');
 var app = express();
 
 var models = require('./models/index');
-
 var admins = require('./routes/admins');
 var applist = require('./routes/applist');
 var appverinfo = require('./routes/appverinfo');
@@ -19,7 +18,6 @@ var stsettings = require('./routes/stsettings');
 var students = require('./routes/students');
 var teachers = require('./routes/teachers');
 // ------------ Connection
-
 
 models.sequelize.sync().then( () => {
   console.log("✓ DB connection success.")
