@@ -12,7 +12,6 @@ import update from './component/Setting/update';
 import {message} from 'antd';
 import axios from 'axios';
 // import Cookies from 'js-cookie';
-// Don't forget to include the CSS styles for antd!
 // ----------------------------
 
 class App extends Component {
