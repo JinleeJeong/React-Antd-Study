@@ -78,7 +78,6 @@ class student extends Component {
         searchText: '',
         startTime: '',
         endTime: '',
-        startEndTime : [],
         selectedRowKeys : [],
         usersTimes : [],
         sortingNumbersNon : [],
@@ -143,7 +142,6 @@ class student extends Component {
               
         // -----------------------------Operation
         {
-          title: '수정',
           dataIndex: 'operation',
           render: (text, record) => {
             
@@ -156,8 +154,9 @@ class student extends Component {
                       
                       {form => (
                         <Popconfirm
-                          title="Sure to save??"
+                          title="저장하시겠습니까?"
                           onConfirm={() => this.save(form, record.key)}
+                          okText="확인" cancelText="취소"
                         >
                           <a
                             href="localhost:3000"
@@ -222,7 +221,7 @@ class student extends Component {
           }
 
           console.log(updateobj);
-          axios.put(`http://localhost:8080/api/sp/members/${key}`, updateobj)
+          axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/members/${key}`, updateobj)
           .then(res => console.log(res));
         } else {
           newData.push(row);
@@ -235,7 +234,7 @@ class student extends Component {
     }
     // ---------------------------------Edit Result or Change State
     componentDidMount(){
-      axios.get('http://localhost:8080/api/sp/stusg')
+      axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/stusg')
       .then(res => {
         for ( let i = 0 ; i < res.data.length ; i++){
           res.data[i].key = res.data[i]['idx'];
@@ -276,7 +275,7 @@ class student extends Component {
       var b = new Date(value[1]).getTime();
       // getTime Function : Date > milliseconds
       if(a!== b){
-      const {startEndTime, users} = this.state
+      const {users} = this.state
       
       this.setState({
         startTime : value[0],
@@ -284,16 +283,8 @@ class student extends Component {
       }, function() {
         var firstDate = moment(this.state.startTime._d, 'YYYY/M/D HH:mm')
         var finishDate = moment(this.state.endTime._d, 'YYYY/M/D HH:mm')
-        var dates = [];
         firstDate = firstDate.format('YYYY/M/D HH:mm');
         finishDate = finishDate.format('YYYY/M/D HH:mm');
-        dates.push(firstDate);
-        dates.push(finishDate);
-        this.setState({
-          startEndTime : dates,
-        }, () => {
-          console.log(startEndTime);
-        })
             // ------------------------------------------------startEndTime setState
 
         var userTimesSet = [];
@@ -342,6 +333,26 @@ class student extends Component {
                       }
 
                       var sortingDates = users.filter(arrFilter);
+                      for(let i = 0; i < sortingDates.length; i++) {
+                        var startHours = moment(sortingDates[i]['startTime'], 'YYYY/M/D HH:mm');
+                        startHours = startHours.format('YYYY/M/D HH:mm');
+                        console.log('startHours : ', startHours);
+                        console.log('Here : ',firstDate, finishDate);
+                        
+                        var diff = moment.duration(moment(startHours).diff(moment(firstDate)));
+                        var days = parseInt(diff.asDays()); //84
+
+                        var hours = parseInt(diff.asHours()); //2039 hours, but it gives total hours in given miliseconds which is not expacted.
+
+                        hours = hours - days*24;  // 23 hours
+
+                        var minutes = parseInt(diff.asMinutes()); //122360 minutes,but it gives total minutes in given miliseconds which is not expacted.
+
+                        minutes = minutes - (days*24*60 + hours*60); //20 minutes.
+                        console.log(hours , minutes);
+                      }
+
+
                       this.setState({
                         users : sortingDates
                       })
@@ -427,7 +438,7 @@ class student extends Component {
       }
 
       confirmLogout = (e) =>{
-        axios.get('http://localhost:8080/api/sp/logout')
+        axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout')
               .then(res => console.log(res.data));
   
         Cookies.remove('admin');
@@ -480,7 +491,7 @@ class student extends Component {
 
         for(let j = 0 ; j < selectedRowKeys.length ; j++)
         {
-          axios.delete(`http://localhost:8080/api/sp/stusg/delete/${key[j]}`)
+          axios.delete(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/stusg/delete/${key[j]}`)
           .then(res => {
             console.log(res);
           })
@@ -531,9 +542,6 @@ class student extends Component {
           // }),
         };
         
-        console.log(this.state.startEndTime);
-        console.log(this.state.users);
-        console.log(this.state.usersTimes);
         const hasSelected = this.state.selectedRowKeys.length > 0;
         return (
           <Layout style={{ minHeight: '100vh' }}>
@@ -571,7 +579,7 @@ class student extends Component {
                   <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
                     
                     
-                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="Yes" cancelText="No">
+                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
                         <Icon type="logout"/>
                         <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
                         <Link to = {`/`}/>                 
@@ -619,7 +627,7 @@ class student extends Component {
                   />
                 </div>
                 <div style={{float:"right"}}>
-                  <Button type="primary" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
+                  <Button type="danger" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
                 </div>
               </Content>
               

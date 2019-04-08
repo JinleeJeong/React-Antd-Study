@@ -1,10 +1,43 @@
 var express = require('express');
 var router = express.Router();
 var models = require("../models/index.js");
-
+var sequelize = require('sequelize')
 /* GET users listing. */
-router.get('/', (req,res,next) => {
-  models.students.findAll()
+router.get('/students', (req,res,next) => {
+  models.students.findAll({include : [
+    {
+      model : models.teachers, 
+      where : sequelize.where(
+      sequelize.col('students.id_tc'),
+      sequelize.col('teacher.id_tc'),
+    )},
+    {
+      model : models.branches,
+      where : sequelize.where(
+      sequelize.col('students.id_br'),
+      sequelize.col('branch.id_br'),
+    )
+    },
+    {
+      model : models.stsettings,
+      where : sequelize.where(
+      sequelize.col('students.id_st'),
+      sequelize.col('stsettings.id_st'),
+    )
+    },
+    {
+      model : models.stlogs,
+      where : sequelize.where(
+      sequelize.col('students.id_st'),
+      sequelize.col('stlogs.id_st'),
+    )
+    },
+
+
+
+
+  ] 
+  })
     .then((results) => {
       res.json(results);
     })
@@ -13,13 +46,13 @@ router.get('/', (req,res,next) => {
     });
 });
 
-  // models.students.create({Name: '홍씨', App: '9', Amount : 10, Teacher : "김백준"})
-  //   .then(result => {
-  //      res.json(result);
-  //   })
-  //   .catch(err => {
-  //      console.error(err);
-  // });
+// models.students.create({id_st: '60St', name_st: '50St', id_tc : '50St', id_br : "50St", token_st : "100St"})
+//   .then(result => {
+//      res.json(result);
+//   })
+//   .catch(err => {
+//      console.error(err);
+// });
 /* UPDATE students */
 
 router.put('/update/:id', (req, res, next) => {
@@ -47,32 +80,6 @@ router.delete('/delete/:id', (req, res, next) =>{
      res.json(users);
   })
 });
-
-  // models.students.update({password: '새로운 유저PW'}, {where: {userID: '유저ID'}})
-  // .then(result => {
-  //    res.json(result);
-  // })
-  // .catch(err => {
-  //    console.error(err);
-  // });
-
-
-
-/* GET SINGLE students BY ID */
-router.get('/:id', function(req, res, next) {
-  students.findById(req.params.id, function (err, post) {
-    if (err) return next(err);
-    res.json(post);
-  });
-});
-
-/* SAVE students */
-// router.post('/', function(req, res, next) {
-//   students.create(req.body, function (err, post) {
-//     if (err) return next(err);
-//     res.json(post);
-//   });
-// });
 
 
 

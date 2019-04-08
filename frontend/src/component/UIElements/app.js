@@ -114,10 +114,9 @@ class app extends Component {
             ...this.getColumnSearchProps('id_app'),
             sorter: (a, b) => this.compStringReverse(a.id_app - b.id_app),
           }, 
-              
+          
         // -----------------------------Operation
         {
-          title: '수정',
           dataIndex: 'operation',
           render: (text, record) => {
             const editable = this.isEditing(record);
@@ -129,8 +128,9 @@ class app extends Component {
                       
                       {form => (
                         <Popconfirm
-                          title="Sure to save??"
+                          title="저장하시겠습니까?"
                           onConfirm={() => this.save(form, record.key)}
+                          okText="확인" cancelText="취소"
                         >
                           <a
                             href="localhost:3000"
@@ -191,7 +191,7 @@ class app extends Component {
           }
 
           console.log(updateobj);
-          axios.put(`http://localhost:8080/api/sp/all/${key}`, updateobj)
+          axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/all/${key}`, updateobj)
           .then(res => console.log(res));
         }
         else {
@@ -209,7 +209,7 @@ class app extends Component {
     // ---------------------------------Edit Result or Change State
     componentDidMount(){
       this._isMounted = true;
-      axios.get('http://localhost:8080/api/sp/all')
+      axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/all')
       .then(res => {
 
         for ( let i = 0 ; i < res.data.length ; i++){
@@ -401,7 +401,7 @@ class app extends Component {
       // -------------------table
 
       confirmLogout = (e) =>{
-        axios.get('http://localhost:8080/api/sp/logout')
+        axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout')
               .then(res => console.log(res.data));
   
         Cookies.remove('admin');
@@ -454,7 +454,7 @@ class app extends Component {
 
         for(let j = 0 ; j < selectedRowKeys.length ; j++)
         {
-          axios.delete(`http://localhost:8080/api/sp/stlogs/delete/${key[j]}`)
+          axios.delete(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/stlogs/delete/${key[j]}`)
           .then(res => {
             console.log(res);
           })
@@ -543,7 +543,7 @@ class app extends Component {
                   <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
                     
                     
-                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="Yes" cancelText="No">
+                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
                         <Icon type="logout"/>
                         <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
                         <Link to = {`/`}/>                  
@@ -591,7 +591,7 @@ class app extends Component {
                   />
                 </div>
                 <div style={{float:"right"}}>
-                  <Button type="primary" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
+                  <Button type="danger" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
                 </div>
               </Content>
             </Layout>

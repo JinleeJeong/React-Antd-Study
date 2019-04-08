@@ -1,16 +1,18 @@
 import React, { Component } from 'react';
 import { Layout, Menu, Breadcrumb, Icon, Table, Button, Input, Form, InputNumber, Popconfirm, message} from 'antd';
 import {Link} from 'react-router-dom';
-import axios from 'axios'
 import Highlighter from 'react-highlight-words';
-import Cookies from 'js-cookie';
+import axios from 'axios'
+import Cookies from 'js-cookie'
+// -----------------------Layout
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
+// -----------------------Layout
 
-
-// ---------------------- Editer Function Start
+// ----- Editer Func
 const FormItem = Form.Item;
 const EditableContext = React.createContext();
+
 
 const EditableRow = ({ form, index, ...props }) => (
   <EditableContext.Provider value={form}>
@@ -19,6 +21,8 @@ const EditableRow = ({ form, index, ...props }) => (
 );
 
 const EditableFormRow = Form.create()(EditableRow);
+
+
 
 class EditableCell extends React.Component {
   getInput = () => {
@@ -62,268 +66,177 @@ class EditableCell extends React.Component {
     );
   }
 }
-// ---------------------- Editer Function End
+// ----- Editer Func
 
 class update extends Component {
     constructor(props) {
-        super(props);
-        this.state = {
-            collapsed: false,
-            selectedRowKeys : [],
-            selectedRowKeysFalse : [],
-            searchText: '',
-            editingKey : '',
-            appTrue : [],
-            appFalse : [],
-          }
-        this.delete = this.delete.bind(this);
-        this.confirmLogout = this.confirmLogout.bind(this);
-        this.cancelLogout = this.cancelLogout.bind(this);
-        this.onChange = this.onChange.bind(this);
-        this.selectedRowDelete = this.selectedRowDelete.bind(this);
+      super(props);
 
-        // ======================================================================================== Left - False 테이블 
-        this.columnsFalse = [
-            {
-              title: '이름',
-              dataIndex: 'Name',
-              key: 'Name',
-              width: '30%',
-              editable: true,
-              ...this.getColumnSearchProps('Name'),
-              sorter: (a,b) => this.compStringReverse(a.Name, b.Name),
-              defaultSortOrder: 'descend',
-              
-            }, 
-            
-            {
-              title: '앱 번호',
-              dataIndex: 'App',
-              width: '30%',
-              editable: true,
-              key: 'App',
-              ...this.getColumnSearchProps('App'),
-              sorter: (a,b) => this.compStringReverse(a.Name, b.Name),
-            },            
-          // -----------------------------Operation
-          {
-            title: '수정',
-            dataIndex: 'operation',
-            width: '30%',
-            render: (text, record) => {
-              const editable = this.isEditing(record);
-              return (
-                <div>
-                  {editable ? (
-                    <span>
-                      <EditableContext.Consumer>
-                        
-                        {form => (
-                          <Popconfirm
-                            title="Sure to save??"
-                            onConfirm={() => this.savefalse(form, record.key)}
-                          >
-                            <a
-                              href="localhost:3000"
-                              style={{ marginRight: 8 , float : "left"}}
-                            >
-                              저장
-                            </a>
-                          </Popconfirm>
-                        )}
-                      </EditableContext.Consumer>
-                      
-                      <div stlye= {{float : "left"}}onClick={() => this.cancel(record.key)} >
-                        취소
-                      </div>
-                    </span>
-                  ) 
-                  
-                  : (
-                    <a href = "localhost:3000" onClick={() => this.edit(record.key)}>편집</a>
-                  )}
-                </div>
-              );
-            },
-          },
-        ];
-        // ======================================================================================== Left - False 테이블 
-
-        // ======================================================================================== Right - True 테이블 
-        this.columns = [
-            {
-            title: '이름',
-            dataIndex: 'Name',
-            key: 'Name',
-            width: '30%',
-            editable: true,
-            sorter: (a,b) => this.compStringReverse(a.Name, b.Name),
-            defaultSortOrder: 'descend',
-            ...this.getColumnSearchProps('Name'),
-        }, 
+      this.state = {
+        users : [],
+        collapsed: false,
+        searchText: '',
+        selectedRowKeys : [],
+        sortingNumbersNon : [],
+        sortingNumbers : [],
+        editingKey : '',
         
-            {
-            title: '앱 번호',
-            dataIndex: 'App',
-            width: '30%',
+      }
+      
+      this.onChange = this.onChange.bind(this);
+      this.delete = this.delete.bind(this);
+      this.confirmLogout = this.confirmLogout.bind(this);
+      this.cancelLogout = this.cancelLogout.bind(this);
+
+      this.columns = [
+          {
+            title: '버전',
+            dataIndex: 'version',
+            key: 'version',
+            width: '17%',
             editable: true,
-            key: 'App',
-            ...this.getColumnSearchProps('App'),
-            sorter: (a,b) => this.compStringReverse(a.Name, b.Name),
-        },            
-    // -----------------------------Operation
-    {
-        title: '수정',
-        dataIndex: 'operation',
-        width: '30%',
-        render: (text, record) => {
+            ...this.getColumnSearchProps('version'),
+            sorter: (a,b) => this.compStringReverse(a.version, b.version),
+            defaultSortOrder: 'descend',
+            
+          }, 
+          
+          {
+            title: '타입',
+            dataIndex: 'type',
+            width: '19%',
+            editable: true,
+            key: 'type',
+            ...this.getColumnSearchProps('type'),
+            sorter: (a, b) => this.compStringReverse(a.type, b.type),
+          }, 
+
+          {
+            title: 'URL',
+            dataIndex: 'url',
+            width: '50%',
+            editable: true,
+            key: 'url',
+            ...this.getColumnSearchProps('url'),
+            sorter: (a, b) => this.compStringReverse(a.url, b.url),
+          }, 
+        // -----------------------------Operation
+        {
+          dataIndex: 'operation',
+          render: (text, record) => {
             const editable = this.isEditing(record);
             return (
-                <div>
-                    {editable ? (
-                        <span>
-                        <EditableContext.Consumer>      
-                                {form => (
-                                    <Popconfirm
-                                    title="Sure to save??"
-                                    onConfirm={() => this.save(form, record.key)}
-                                    >
-                                    <a
-                                      href="localhost:3000"
-                                      style={{ marginRight: 8 , float : "left"}}
-                                      >
-                                      저장
-                                    </a>
-                                  </Popconfirm>
-                                )}
-                        </EditableContext.Consumer>
-                              
-                            <div stlye= {{float : "left"}}onClick={() => this.cancel(record.key)} >
-                                취소
-                            </div>
-                        </span>
-                        ) 
-                          
-                        : ( <a href = "localhost:3000" onClick={() => this.edit(record.key)}>편집</a>)}
-                        </div>
-                      );
-                    },
-                  },
-        ];
-    // ======================================================================================== Right - True 테이블 
+              <div>
+                {editable ? (
+                  <span>
+                    <EditableContext.Consumer>
+                      
+                      {form => (
+                        <Popconfirm
+                          title="저장하시겠습니까?"
+                          onConfirm={() => this.save(form, record.key)}
+                          okText="확인" cancelText="취소"
+                        >
+                          <a
+                            href="localhost:3000"
+                            style={{ marginRight: 8 , float : "left"}}
+                          >
+                            저장
+                          </a>
+                        </Popconfirm>
+                      )}
+                    </EditableContext.Consumer>
+                    
+                    <div stlye= {{float : "left"}}onClick={() => this.cancel(record.key)} >
+                      취소
+                    </div>
+                  </span>
+                ) 
+                
+                : (
+                  <a href = "localhost:3000" onClick={() => this.edit(record.key)}>편집</a>
+                )}
+              </div>
+            );
+          },
+        },
+        // -----------------------------Operation
+      ];
     }
+    isEditing = record => record.key === this.state.editingKey;
 
-    isEditing = record => record.key === this.state.editingKey; // Edit 활성화
-
-    // 편집 취소
     cancel = () => {
       this.setState({ editingKey: '' });
     };
 
-    // 편집 저장 Left - False 테이블
-    savefalse(form, key) {
-        form.validateFields((error, row) => {
-          if (error) {
-            return;
-          }
-          const {appFalse} = this.state;
-          const newData = [...appFalse];
-          const index = newData.findIndex(item => key === item.key);
-          if (index > -1) {
-            const item = newData[index];
-            newData.splice(index, 1, {
-              ...item,
-              ...row,
-            });
-            this.setState({ appFalse: newData, editingKey: '' });
-  
-            console.log('Key : ', key)
-  
-            const updateobj = {
-              Name : newData[index].Name,
-              App : newData[index].App,
-            }
-  
-            console.log(updateobj);
-            axios.put(`http://localhost:8080/api/applist/update/${key}`, updateobj)
-            .then(res => console.log(res));
-          }
-          else {
-            newData.push(row);
-            this.setState({ appFalse: newData, editingKey: '' });
-          }
-        });
-      }
-
-    // 편집 저장 Right - True 테이블
     save(form, key) {
-        form.validateFields((error, row) => {
+      form.validateFields((error, row) => {
         if (error) {
-            return;
+          return;
         }
-        const {appTrue} = this.state;
-        const newData = [...appTrue];
+        const {users} = this.state;
+        const newData = [...users];
         const index = newData.findIndex(item => key === item.key);
         if (index > -1) {
-            const item = newData[index];
-            newData.splice(index, 1, {
+          const item = newData[index];
+          newData.splice(index, 1, {
             ...item,
             ...row,
-            });
-            this.setState({ appTrue: newData, editingKey: '' });
+          });
+          this.setState({ users: newData, editingKey: '' });
 
-            console.log('Key : ', key)
+          console.log('Key : ', key)
 
-            const updateobj = {
-            Name : newData[index].Name,
-            App : newData[index].App,
-            }
+          const updateobj = {
+            version : newData[index].version,
+            type : newData[index].type,
+            url : newData[index].url,
+          }
 
-            console.log(updateobj);
-            axios.put(`http://localhost:8080/api/applist/update/${key}`, updateobj)
-            .then(res => console.log(res));
+          console.log(updateobj);
+          axios.put(`http://localhost:8080/api/sp/appverinfos/update/${key}`, updateobj)
+          .then(res => console.log(res));
         }
         else {
-            newData.push(row);
-            this.setState({ appTrue: newData, editingKey: '' });
+          newData.push(row);
+          this.setState({ users: newData, editingKey: '' });
         }
-        });
+      });
     }
 
+    
     edit(key) {
       const {editingKey} = this.state
       this.setState({ editingKey: key }, () => {console.log(editingKey)});
     }
-
-    
+    // ---------------------------------Edit Result or Change State
     componentDidMount(){
+      axios.get('http://localhost:8080/api/sp/appverinfos')
+      .then(res => {
+        for ( let i = 0 ; i < res.data.length ; i++){
+          res.data[i].key = res.data[i]['idx'];
+          delete res.data[i].idx;
       
-        axios.get('http://localhost:8080/api/applist/true')
-        .then(res => {
-          this.setState({
-            appTrue : res.data,
-          }, () => {
-            })
-          });
-        
-        axios.get('http://localhost:8080/api/applist/false')
-        .then(res => {
-            this.setState({
-              appFalse : res.data,
-            }, () => {
-              })
-            });
+        }
+        this.setState({
+          users : res.data,
+      })
+    });
+  }
 
-    }
-
-    // 슬라이드 바 True & False
     onCollapse = (collapsed) => {
-        console.log(collapsed);
-        this.setState({ collapsed });
+      console.log(collapsed);
+      this.setState({ collapsed });
     }
-      
 
-    // Search in Table
+  // sorting 
+    onChange = (value, dateString) => {
+      // console.log('Selected Time: ', value);
+      // console.log('Formatted Selected Time: ', dateString);
+    }
+    
+
+    // -------------------table
       getColumnSearchProps = (dataIndex) => ({
         filterDropdown: ({
           setSelectedKeys, selectedKeys, confirm, clearFilters,
@@ -374,13 +287,6 @@ class update extends Component {
         ),
       })
     
-      // Sorting 함수 in Table
-
-      onChange = (value, dateString) => {
-        // console.log('Selected Time: ', value);
-        // console.log('Formatted Selected Time: ', dateString);
-      }
-
       
       // Search Fc
       handleSearch = (selectedKeys, confirm) => {
@@ -396,239 +302,167 @@ class update extends Component {
 
       // -------------------table
 
-      confirmLogout = (e) =>{
-        axios.get('http://localhost:8080/api/sp/logout')
-              .then(res => console.log(res.data));
-  
-        Cookies.remove('admin');
-        message.success('로그아웃 성공했습니다.');
-  
-        setTimeout(() => {
-          return this.props.history.push('/')
-        }, 1000)
-  
-      };
-      
-      cancelLogout = (e) => {
-        message.error('로그아웃 취소');
-      }
-      // ============================= 로그아웃
+    
 
-      // Sorting for Korean
+       // ============================= 로그아웃 
+
+    confirmLogout = (e) =>{
+      axios.get('http://localhost:8080/api/sp/logout')
+            .then(res => console.log(res.data));
+
+      Cookies.remove('admin');
+      message.success('로그아웃 성공했습니다.');
+
+      setTimeout(() => {
+        return this.props.history.push('/')
+      }, 1000)
+
+    };
+    
+    cancelLogout = (e) => {
+      message.error('로그아웃 취소');
+    }
+    // ============================= 로그아웃
+
+      onChangePicker = (pagination, filters, sorter) => {
+        console.log('params', pagination, filters, sorter);
+      }
+      
       compStringReverse = (a,b) => {
         if(a > b) return -1;
         if(b > a) return 1;
         return 0;
       }
-      // Sorting for Korean
 
-      selectedRowDelete(appTrue) {
-        const {selectedRowKeys} = this.state
-            for(let i = 0; i < selectedRowKeys.length ; i++){
-            if(appTrue.key === selectedRowKeys[i])
-            {
-                return false;
-            }
-        }
-            return true;
-      }
-      
-
+    
       delete = (e) => {
         e.preventDefault();
-        
-        const {selectedRowKeys, appTrue} = this.state
-        var rowArrayDelete = appTrue.filter(this.selectedRowDelete)
-        var key = []
+        const {selectedRowKeys, users} = this.state
 
-            this.setState({
-                appTrue : rowArrayDelete,
-            })
-
-            key = selectedRowKeys;
-    
-            for(let j = 0 ; j < selectedRowKeys.length ; j++)
+        function selectedRowDelete(users){
+          for(let i = 0; i < selectedRowKeys.length ; i++)
+          {
+            if(users.key === selectedRowKeys[i])
             {
-              axios.delete(`http://localhost:8080/api/applist/delete/${key[j]}`)
-              .then(res => {
-                console.log(res);
-              })
-              .catch((err) => {
-                console.log(err);
-              })
+              return false;
             }
-    }
-
-
-    // False >> True로 가는 함수 
-    rightButton = (e) => {
-        e.preventDefault();
-        const {selectedRowKeysFalse, appFalse, appTrue} = this.state
-        var key = []
-        key = selectedRowKeysFalse;
-        
-        function selectedRowTrueRight(appFalse) {
-            for(let i = 0; i < selectedRowKeysFalse.length ; i++){
-                if(appFalse.key === selectedRowKeysFalse[i])
-                {
-                    return false;
-                }
-            }
-                return true;
+          }
+          return true;
         }
-        function selectedRowFalseRight(appFalse) {
-                for(let i = 0; i < selectedRowKeysFalse.length ; i++){
-                if(appFalse.key === selectedRowKeysFalse[i])
-                {
-                    return true;
-                }
-            }
-                return false;
-        }
-        var rowArrayRight = appFalse.filter(selectedRowTrueRight)
-        var rowArrayRightFailed = appFalse.filter(selectedRowFalseRight)
-        var appTrueList = appTrue.concat(rowArrayRightFailed)
-        
+        var rowArrayDelete = users.filter(selectedRowDelete)
+
         this.setState({
-            appFalse : rowArrayRight,
-            appTrue : appTrueList,
+          users : rowArrayDelete,
         })
 
-        for(let i = 0 ; i < selectedRowKeysFalse.length ; i++){
-            axios.put(`http://localhost:8080/api/applist/update/right/${key[i]}`)
-            .then(res => console.log(res.data));
-        }
-    }
-
-    // True >> False로 가는 함수 
-    leftButton = (e) => {
-        e.preventDefault();
-        const {selectedRowKeys, appFalse, appTrue} = this.state
         var key = []
         key = selectedRowKeys;
 
-        function selectedRowTrueRight(appTrue) {
-            for(let i = 0; i < selectedRowKeys.length ; i++){
-                if(appTrue.key === selectedRowKeys[i])
-                {
-                    return false
-                }
-            }
-                return true;
+        for(let j = 0 ; j < selectedRowKeys.length ; j++)
+        {
+          axios.delete(`http://localhost:8080/api/sp/appverinfos/delete/${key[j]}`)
+          .then(res => {
+            console.log(res);
+          })
+          .catch((err) => {
+            console.log(err);
+          })
         }
-        function selectedRowFalseRight(appTrue) {
-                for(let i = 0; i < selectedRowKeys.length ; i++){
-                if(appTrue.key === selectedRowKeys[i])
-                {
-                    return true;
-                }
-            }
-                return false;
-        }
-        var rowArrayRight = appTrue.filter(selectedRowTrueRight)
-
-        var rowArrayRightFailed = appTrue.filter(selectedRowFalseRight)
-        var appTrueList = appFalse.concat(rowArrayRightFailed)
-        this.setState({
-            appTrue : rowArrayRight,
-            appFalse : appTrueList,
-        })
-
-        for(let i = 0 ; i < selectedRowKeys.length ; i++){
-            axios.put(`http://localhost:8080/api/applist/update/left/${key[i]}`)
-            .then(res => console.log(res));
-        }
-    }
-
-    render() {
-        const components = {
-            body: {
-              row: EditableFormRow,
-              cell: EditableCell,
-            },
-          };
-
-          const hasSelected = this.state.selectedRowKeys.length > 0; // True > False
-          const hasSelectedFalse = this.state.selectedRowKeysFalse.length > 0; // False > True
-            // (1) True
-          const columns = this.columns.map((col) => {
-            if (!col.editable) {
-              return col;
-            }
-            return {
-              ...col,
-              onCell: record => ({
-                record,
-                inputType: col.dataIndex === 'App' ? 'text' : 'text', // 'number' >> 편집시 하나씩 증가 이용 가능
-                dataIndex: col.dataIndex,
-                title: col.title,
-                editing: this.isEditing(record),
-              }),
-            };
-          });
-
-          // (2) False
-          const columnsFalse = this.columnsFalse.map((col) => {
-            if (!col.editable) {
-              return col;
-            }
-            return {
-              ...col,
-              onCell: record => ({
-                record,
-                inputType: col.dataIndex === 'App' ? 'text' : 'text', // 'number'
-                dataIndex: col.dataIndex,
-                title: col.title,
-                editing: this.isEditing(record),
-              }),
-            };
-          });
-  
-          const rowSelection = {
-            onChange: (selectedRowKeys, selectedRows) => {
-                const {selectedRowKeysFalse} = this.state;
-                if(selectedRowKeysFalse.length > 0){
-                    message.error('한 테이블만 선택하세요.');
-                    setTimeout(function() {
-                        window.location.reload();
-                    }, 1000);
-                }
-                else {
-                    this.setState({
-                        selectedRowKeys : selectedRowKeys
-                      })
-                }
+        
+      }
+      
+       handleSubmit = (e) => {
+        e.preventDefault();
+        const {users} = this.state;
+        var newData = [...users];
+        this.props.form.validateFields((err, values) => {
+          if (!err) {
+            console.log('Received values of form: ', values);
+            if(values.hasOwnProperty('version') || values.hasOwnProperty('version') || values.hasOwnProperty('url')){
+              console.log("success");
+              const insertObj = {
+                version : values.version,
+                type : values.type,
+                url : values.url,
+              }
               
-            } 
-        };
-        const rowSelectionFalse = {
-            onChange: (selectedRowKeysFalse, selectedRows) => {
-                const {selectedRowKeys} = this.state;
-                if(selectedRowKeys.length > 0){
-                    message.error('한 테이블만 선택하세요.');
-                    setTimeout(function() {
-                        window.location.reload();
-                    }, 1300);
-                }
-                else {
-                    this.setState({
-                        selectedRowKeysFalse : selectedRowKeysFalse
-                    })
-                }
-            } 
-        };
-        console.log(this.state.appTrue);
-        console.log(this.state.appFalse);    
+              console.log(insertObj);
 
+              axios.post(`http://localhost:8080/api/sp/appverinfos/insert`, insertObj)
+              .then(res => {
+                res.data.key = res.data.idx;
+                delete res.data.idx;
+                console.log(res.data);
+                newData = newData.concat(res.data);
+                this.setState({
+                  users : newData,
+                })
+                window.location.reload();
+              });
+            }
+          }
+          else {
+            message.error('모두 입력해주세요.');
+            console.log("실패");
+          }
+        });
+      }
+
+
+      activateSubmit = (e) => {
+        e.preventDefault();
+        console.log("success");
+      };
+
+
+      render() {
+        const {
+          getFieldDecorator, getFieldError, isFieldTouched,
+        } = this.props.form;
+        const appNameError = isFieldTouched('Name') && getFieldError('Name');
+        const appIdError = isFieldTouched('Id') && getFieldError('Id');
+
+        const components = {
+          body: {
+            row: EditableFormRow,
+            cell: EditableCell,
+          },
+        };
+        const columns = this.columns.map((col) => {
+          if (!col.editable) {
+            return col;
+          }
+          return {
+            ...col,
+            onCell: record => ({
+              record,
+              inputType: col.dataIndex === 'App' ? 'text' : 'text',
+              dataIndex: col.dataIndex,
+              title: col.title,
+              editing: this.isEditing(record),
+            }),
+          };
+        });
+        // const rowSelections = {
+        //   onChange: (selectedRowKeys, selectedRows) => {
+        //     this.setState({
+        //       selectedRowKeys : selectedRowKeys
+        //     }, () => {
+        //       console.log(this.state.selectedRowKeys);
+        //     })
+        //   } 
+        // };
+        const hasSelected = this.state.selectedRowKeys.length > 0;  
+        console.log(this.state.users);
         return (
-            <Layout style={{ minHeight: '100vh' }}>
+          <Layout style={{ minHeight: '100vh' }}>
             <Sider
               collapsible 
               collapsed={this.state.collapsed}
               onCollapse={this.onCollapse}
             >
               <div className="App-logo" />
-              <Menu theme="dark" defaultSelectedKeys={['2']} mode="inline" style={{maxHeight:"898px"}}>
+              <Menu theme="dark" defaultSelectedKeys={['4']} mode="inline" style={{maxHeight:"898px"}}>
 
                 <Menu.Item key = "1" style= {{marginTop: '32%'}}>
                     <Icon type="pie-chart" /> <span>대시보드</span>
@@ -656,7 +490,7 @@ class update extends Component {
                   <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
                     
                     
-                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="Yes" cancelText="No">
+                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
                         <Icon type="logout"/>
                         <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
                         <Link to = {`/`}/>                  
@@ -670,58 +504,47 @@ class update extends Component {
             <Layout>
               <Header style={{ background: '#1DA57A', padding: 0 }} >
                 <Breadcrumb style={{ margin: '12px 0'}}>
-                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "4vh", fontWeight :"bolder", fontSize : "3.2vh"}}>사용금지 목록</h1></Breadcrumb.Item>
+                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "4vh", fontWeight :"bolder", fontSize : "3.2vh"}}>앱 업데이트</h1></Breadcrumb.Item>
                 </Breadcrumb>
               </Header>
 
-
-              <Content style={{ margin: '10vh 30px 0vh 30px'}}>
-
-              <div style={{ padding: 11, background: '#fff', minHeight: 360, marginBottom: '1%' ,marginLeft: "5%", float : "left", width: "40%"}}>
-              <div style={{textAlign : "center", marginBottom:"1.5vh", fontWeight : "600", fontSize : "2vh", marginTop : "1vh"}}>
-              사용 금지 목록
-              </div>
-              <Table
-                    components={components}
-                    bordered
-                    dataSource={this.state.appFalse}
-                    columns={columnsFalse}
-                    rowSelection={rowSelectionFalse}
-                    rowClassName="editable-row"
-                    pagination={{
-                      onChange: this.cancel,
-                    }}
-                    onChange = {this.onChange}
-                     rowkey={record => record.uid}
-                  />
-            </div>
-            
-            <div style = {{ margin : "20vh 0 0 4vh", float: "left"}}>
-                <div>
-                    <Button type="primary" style={{width : "5.3vh", marginBottom : "3vh"}} onClick ={this.leftButton} disabled={!hasSelected}>
-                        <Icon type="left" />
-                    </Button>
-                </div>
+              <Content style={{ margin: '5vh 30px 30px 30px' }}>
                 
-                <div>
-                <Button type="primary" style={{width : "5.3vh"}} onClick ={this.rightButton} disabled={!hasSelectedFalse}>
-                    <Icon type="right" />
-                </Button>
+                <div style={{ padding: 11, background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
+                <div style={{float:"left"}}>
+                  <Button style={{}} type="danger" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
                 </div>
-            </div>
-
-            <div style={{ padding: 11, background: '#fff', minHeight: 360, marginBottom: '1%', float : "left", clear : "none", width: "40%", marginLeft : "4vh"}}>
-            <div style={{textAlign : "left"}}>
-              <Button type="primary" onClick = {this.delete} disabled={!hasSelected} style ={{float: "left", marginBottom : "1vh", marginTop : "-0.5vh"}}>삭제</Button> 
-              <div style={{textAlign : "center", marginRight : "7vh", marginTop : "1vh", fontWeight : "600", fontSize : "2vh"}}> 사용 가능 목록 </div>
-            </div>
-            
+                <div style={{float:"left", marginLeft: "1vh"}}>
+                <Popconfirm title = "활성화하시겠습니까?" onConfirm={this.activateSubmit} onCancel={() => {console.log("취소")}} okText="확인" cancelText="취소">
+                  <Button style={{}} type="primary" disabled={!hasSelected}>활성화</Button>
+                </Popconfirm>
+                </div>
+                <div style={{marginRight : "20vh",textAlign : "center", marginBottom:"1.5vh", fontWeight : "600", fontSize : "2vh", marginTop : "1vh"}}>
+                앱 업데이트
+                </div>
                 <Table
+                    rowSelection={{type :'radio', 
+                    columnTitle : "활성화",
+                    columnWidth : "7%",
+                    onChange: (selectedRowKeys, selectedRows) => {
+                      this.setState({
+                        selectedRowKeys : selectedRowKeys
+                      }, () => {
+                        console.log(this.state.selectedRowKeys);
+                        
+                      })
+                    // return (
+                    //     <Popconfirm 
+                    //         title = "활성화하시겠습니까?" onConfirm={this.activateSubmit} onCancel={() => {console.log("취소")}} okText="확인" cancelText="취소">
+                    //     </Popconfirm>)
+                    }
+                     
+                }}
+
                     components={components}
                     bordered
-                    dataSource={this.state.appTrue}
+                    dataSource={this.state.users}
                     columns={columns}
-                    rowSelection={rowSelection}
                     rowClassName="editable-row"
                     pagination={{
                       onChange: this.cancel,
@@ -729,13 +552,64 @@ class update extends Component {
                     onChange = {this.onChange}
                      rowkey={record => record.uid}
                   />
-            </div>
 
+                <Form layout="inline" style={{marginLeft: "7%", display : "flex", spaceBetween : "10px"}}>
+                  <Form.Item
+                  
+                    validateStatus={appNameError ? 'error' : ''}
+                    help={appNameError || ''}
+                    style={{flex: "1"}}
+                    
+                  ><div>
+                    {getFieldDecorator('version', {
+                      rules: [{ required: true, message: '앱 버전을 입력하세요.' }],
+                    })(
+                      <Input  placeholder="신규 버전 입력" />
+                    )}
+                    </div>
+                  </Form.Item>
+                  <Form.Item
+                  
+                    validateStatus={appIdError ? 'error' : ''}
+                    help={appIdError || ''}
+                    style={{flex: "1"}}
+                  ><div>
+                    {getFieldDecorator('type', {
+                      rules: [{ required: true, message: '앱 타입를 입력하세요.' }],
+                    })(
+                      <Input  placeholder="타입 입력" />
+                    )}</div>
+                  </Form.Item>
+                  <Form.Item
+                    validateStatus={appIdError ? 'error' : ''}
+                    help={appIdError || ''}
+                    style={{flex: "3", display: "block"}}
+                    
+                  ><div>
+                    {getFieldDecorator('url', {
+                      rules: [{ required: true, message: 'URL을 입력하세요.' }],
+                    })(
+                      <Input style={{width:"75vh"}} placeholder="URL 입력" />
+                    )}</div>
+                  </Form.Item>
+                  <Form.Item style={{float: "right"}}
+                  >
+                      <Popconfirm title = "추가하시겠습니까?" onConfirm={this.handleSubmit} onCancel={() => {console.log("취소")}} okText="확인" cancelText="취소">
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                      >
+                        추가
+                      </Button>
+                      </Popconfirm>
+                  </Form.Item>
+                </Form>
+                </div>
               </Content>
             </Layout>
           </Layout>
+    
         );
-    }
-}
-
-export default update;
+      }
+  }
+export default Form.create()(update);

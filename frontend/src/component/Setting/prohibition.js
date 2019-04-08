@@ -7,10 +7,14 @@ import Cookies from 'js-cookie'
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
 
-
+const formItemLayout = {
+  labelCol: { span: 1 },
+  wrapperCol: { span: 23 },
+};
 // ---------------------- Editer Function Start
 const FormItem = Form.Item;
 const EditableContext = React.createContext();
+
 
 const EditableRow = ({ form, index, ...props }) => (
   <EditableContext.Provider value={form}>
@@ -19,6 +23,8 @@ const EditableRow = ({ form, index, ...props }) => (
 );
 
 const EditableFormRow = Form.create()(EditableRow);
+
+
 
 class EditableCell extends React.Component {
   getInput = () => {
@@ -62,7 +68,7 @@ class EditableCell extends React.Component {
     );
   }
 }
-// ---------------------- Editer Function End
+// ----- Editer Func
 
 class prohibition extends Component {
     constructor(props) {
@@ -92,7 +98,7 @@ class prohibition extends Component {
             title: '이름',
             dataIndex: 'name_app',
             key: 'name_app',
-            width: '30%',
+            width: '35%',
             editable: true,
             ...this.getColumnSearchProps('name_app'),
             sorter: (a,b) => this.compStringReverse(a.name_app, b.name_app),
@@ -103,7 +109,7 @@ class prohibition extends Component {
           {
             title: '앱 번호',
             dataIndex: 'id_app',
-            width: '30%',
+            width: '35%',
             editable: true,
             key: 'id_app',
             ...this.getColumnSearchProps('id_app'),
@@ -111,9 +117,8 @@ class prohibition extends Component {
           },            
         // -----------------------------Operation
         {
-          title: '수정',
           dataIndex: 'operation',
-          width: '30%',
+          width: '25%',
           render: (text, record) => {
             const editable = this.isEditing(record);
             return (
@@ -124,8 +129,9 @@ class prohibition extends Component {
                       
                       {form => (
                         <Popconfirm
-                          title="Sure to save??"
+                          title="저장하시겠습니까?"
                           onConfirm={() => this.savefalse(form, record.key)}
+                          okText="확인" cancelText="취소"
                         >
                           <a
                             href="localhost:3000"
@@ -160,7 +166,7 @@ class prohibition extends Component {
           title: '이름',
           dataIndex: 'name_app',
           key: 'name_app',
-          width: '30%',
+          width: '35%',
           editable: true,
           sorter: (a,b) => this.compStringReverse(a.name_app, b.name_app),
           defaultSortOrder: 'descend',
@@ -170,7 +176,7 @@ class prohibition extends Component {
           {
           title: '앱 번호',
           dataIndex: 'id_app',
-          width: '30%',
+          width: '35%',
           editable: true,
           key: 'id_app',
           ...this.getColumnSearchProps('id_app'),
@@ -180,7 +186,7 @@ class prohibition extends Component {
           {
               title: '수정',
               dataIndex: 'operation',
-              width: '30%',
+              width: '25%',
               render: (text, record) => {
                   const editable = this.isEditing(record);
                   return (
@@ -190,8 +196,9 @@ class prohibition extends Component {
                               <EditableContext.Consumer>      
                                       {form => (
                                           <Popconfirm
-                                          title="Sure to save??"
+                                          title="저장하시겠습니까?"
                                           onConfirm={() => this.save(form, record.key)}
+                                          okText="확인" cancelText="취소"
                                           >
                                           <a
                                             href="localhost:3000"
@@ -313,7 +320,7 @@ class prohibition extends Component {
     
     componentDidMount(){
       
-        axios.get('http://localhost:8080/api/sp/disableappusg')
+        axios.get('http://localhost:8080/api/sp/disableapps')
         .then(res => {
           for ( let i = 0 ; i < res.data.length ; i++){
             res.data[i].key = res.data[i]['idx'];
@@ -335,10 +342,7 @@ class prohibition extends Component {
           })
         });
     }
-    shouldComponentUpdate(nextProps, nextState){
-      return this.state.appTrue !== nextState.appTrue || this.state.appFalse !== nextState.appFalse || this.state.selectedRowKeys !== nextState.selectedRowKeys || this.state.selectedRowKeysFalse !== nextState.selectedRowKeysFalse 
-    }
-    
+  
 
     // 슬라이드 바 True & False
     onCollapse = (collapsed) => {
@@ -382,7 +386,7 @@ class prohibition extends Component {
 
         
         filterIcon: filtered => <Icon type="search" style={{ color: filtered ? '#1890ff' : undefined }} />,
-        onFilter: (value, record) => record[dataIndex].toString().toLowerCase().includes(value.toLowerCase()),
+        onFilter: (value, record) => record[dataIndex].toString().toLowerCase().indexOf(value.toLowerCase() !== -1),
         onFilterDropdownVisibleChange: (visible) => {
           if (visible) {
             setTimeout(() => this.searchInput.select());
@@ -395,8 +399,8 @@ class prohibition extends Component {
             autoEscape
             textToHighlight={text.toString()}
           />
-        ),
-      })
+      ),
+    })
     
       // Sorting 함수 in Table
 
@@ -574,7 +578,47 @@ class prohibition extends Component {
         }
     }
 
+    handleSubmit = (e) => {
+      e.preventDefault();
+      const {appFalse} = this.state;
+      var newData = [...appFalse];
+      this.props.form.validateFields((err, values) => {
+        if (!err) {
+          console.log('Received values of form: ', values);
+          if(values.hasOwnProperty('name_app') || values.hasOwnProperty('id_app')){
+            console.log("success");
+            const insertObj = {
+              name_app : values.name_app,
+              id_app : values.id_app,
+            }
+            
+            console.log(insertObj);
+
+            axios.post(`http://localhost:8080/api/sp/disableapps/insert`, insertObj)
+            .then(res => {
+              res.data.key = res.data.idx;
+              delete res.data.idx;
+              console.log(res.data);
+              newData = newData.concat(res.data);
+              this.setState({
+                appFalse : newData,
+              })
+              window.location.reload();
+            });
+          }
+        }
+        else {
+          console.log("실패");
+        }
+      });
+    }
+
     render() {
+      const {
+        getFieldDecorator, getFieldError, isFieldTouched,
+          } = this.props.form;
+          const appNameError = isFieldTouched('name_app') && getFieldError('name_app');
+          const appIdError = isFieldTouched('id_app') && getFieldError('id_app');
         const components = {
             body: {
               row: EditableFormRow,
@@ -691,7 +735,7 @@ class prohibition extends Component {
                   <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
                     
                     
-                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="Yes" cancelText="No">
+                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
                         <Icon type="logout"/>
                         <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
                         <Link to = {`/`}/>                  
@@ -750,7 +794,7 @@ class prohibition extends Component {
 
             <div style={{ padding: 11, background: '#fff', minHeight: 360, marginBottom: '1%', float : "left", clear : "none", width: "40%", marginLeft : "4vh"}}>
             <div style={{textAlign : "left"}}>
-              <Button type="primary" onClick = {this.delete} disabled={!hasSelectedFalse} style ={{float: "left", marginBottom : "1vh", marginTop : "-0.5vh"}}>삭제</Button> 
+              <Button type="danger" onClick = {this.delete} disabled={!hasSelectedFalse} style ={{float: "left", marginBottom : "1vh", marginTop : "-0.5vh"}}>삭제</Button> 
               <div style={{textAlign : "center",marginRight : "7vh",  fontWeight : "600", fontSize : "2vh", marginTop : "1vh"}}>
               사용 금지 목록
               </div></div>
@@ -767,6 +811,46 @@ class prohibition extends Component {
                     onChange = {this.onChange}
                      rowkey={record => record.uid}
                   />
+              <Form layout="inline" style={{marginLeft: "10%", display: "flex"}}>
+                  <Form.Item
+                  {...formItemLayout}
+                    validateStatus={appNameError ? 'error' : ''}
+                    help={appNameError || ''}
+                    style={{width : "37%", marginRight:"0"}}
+                    
+                  ><div>
+                    {getFieldDecorator('name_app', {
+                      rules: [{ required: true, message: '앱 이름을 입력하세요.' }],
+                    })(
+                      <Input placeholder="입력" />
+                    )}
+                    </div>
+                  </Form.Item>
+                  <Form.Item
+                  {...formItemLayout}
+                    validateStatus={appIdError ? 'error' : ''}
+                    help={appIdError || ''}
+                    style={{width : "37%", marginRight:"0"}}
+                  ><div>
+                    {getFieldDecorator('id_app', {
+                      rules: [{ required: true, message: '앱 번호를 입력하세요.' }],
+                    })(
+                      <Input placeholder="입력" />
+                    )}</div>
+                  </Form.Item>
+                  <Form.Item style={{float: "right"}}
+                  {...formItemLayout}>
+                      <Popconfirm title = "추가하시겠습니까?" onConfirm={this.handleSubmit} onCancel={() => {console.log("취소")}} okText="확인" cancelText="취소">
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                      >
+                        추가
+                      </Button>
+                      </Popconfirm>
+                  </Form.Item>
+                </Form>
+
             </div>
 
               </Content>
@@ -776,4 +860,4 @@ class prohibition extends Component {
     }
 }
 
-export default prohibition;
+export default Form.create()(prohibition);

@@ -21,7 +21,11 @@ module.exports = function (sequelize, DataTypes) {
 
       tableName: 'stlogs'
     });
-
+    stlogs.associate = function(models) {
+      stlogs.belongsTo(models.students, {
+        foreignKey : "id_st",
+      })
+    }
     return stlogs;
   };
   

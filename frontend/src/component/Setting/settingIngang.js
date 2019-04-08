@@ -13,6 +13,11 @@ const {SubMenu} = Menu;
 const FormItem = Form.Item;
 const EditableContext = React.createContext();
 
+const formItemLayout = {
+  labelCol: { span: 1 },
+  wrapperCol: { span: 23 },
+};
+
 const EditableRow = ({ form, index, ...props }) => (
   <EditableContext.Provider value={form}>
     <tr {...props} />
@@ -21,9 +26,7 @@ const EditableRow = ({ form, index, ...props }) => (
 
 const EditableFormRow = Form.create()(EditableRow);
 
-function hasErrors(fieldsError) {
-  return Object.keys(fieldsError).some(field => fieldsError[field]);
-}
+
 
 class EditableCell extends React.Component {
   getInput = () => {
@@ -91,30 +94,29 @@ class settingIngang extends Component {
 
       this.columns = [
           {
-            title: '이름',
-            dataIndex: 'Name',
-            key: 'Name',
+            title: '앱 이름',
+            dataIndex: 'name_app',
+            key: 'name_app',
             width: '40%',
             editable: true,
-            ...this.getColumnSearchProps('Name'),
-            sorter: (a,b) => this.compStringReverse(a.Name, b.Name),
+            ...this.getColumnSearchProps('name_app'),
+            sorter: (a,b) => this.compStringReverse(a.name_app, b.name_app),
             defaultSortOrder: 'descend',
             
           }, 
           
           {
-            title: '앱 번호',
-            dataIndex: 'App',
+            title: '앱 ID',
+            dataIndex: 'id_app',
             width: '40%',
             editable: true,
-            key: 'App',
-            ...this.getColumnSearchProps('App'),
-            sorter: (a, b) => this.compStringReverse(a.Name, b.Name),
+            key: 'id_app',
+            ...this.getColumnSearchProps('id_app'),
+            sorter: (a, b) => this.compStringReverse(a.id_app, b.id_app),
           }, 
 
         // -----------------------------Operation
         {
-          title: '수정',
           dataIndex: 'operation',
           render: (text, record) => {
             const editable = this.isEditing(record);
@@ -126,8 +128,9 @@ class settingIngang extends Component {
                       
                       {form => (
                         <Popconfirm
-                          title="Sure to save??"
+                          title="저장하시겠습니까?"
                           onConfirm={() => this.save(form, record.key)}
+                          okText="확인" cancelText="취소"
                         >
                           <a
                             href="localhost:3000"
@@ -182,13 +185,12 @@ class settingIngang extends Component {
           console.log('Key : ', key)
 
           const updateobj = {
-            Name : newData[index].Name,
-            App : newData[index].App,
-            Amount : newData[index].Amount
+            name_app : newData[index].name_app,
+            id_app : newData[index].id_app,
           }
 
           console.log(updateobj);
-          axios.put(`http://localhost:8080/api/users/update/${key}`, updateobj)
+          axios.put(`http://localhost:8080/api/sp/ingangs/update/${key}`, updateobj)
           .then(res => console.log(res));
         }
         else {
@@ -205,15 +207,17 @@ class settingIngang extends Component {
     }
     // ---------------------------------Edit Result or Change State
     componentDidMount(){
-
-      
-      axios.get('http://localhost:8080/api/users')
+      axios.get('http://localhost:8080/api/sp/ingangs')
       .then(res => {
+        for ( let i = 0 ; i < res.data.length ; i++){
+          res.data[i].key = res.data[i]['idx'];
+          delete res.data[i].idx;
+      
+        }
         this.setState({
           users : res.data,
-        }, () => {
-          })
-        });
+      })
+    });
   }
 
     onCollapse = (collapsed) => {
@@ -352,7 +356,7 @@ class settingIngang extends Component {
 
         for(let j = 0 ; j < selectedRowKeys.length ; j++)
         {
-          axios.delete(`http://localhost:8080/api/users/delete/${key[j]}`)
+          axios.delete(`http://localhost:8080/api/sp/ingangs/delete/${key[j]}`)
           .then(res => {
             console.log(res);
           })
@@ -365,22 +369,46 @@ class settingIngang extends Component {
       
        handleSubmit = (e) => {
         e.preventDefault();
+        const {users} = this.state;
+        var newData = [...users];
         this.props.form.validateFields((err, values) => {
           if (!err) {
             console.log('Received values of form: ', values);
-            if(values.hasOwnProperty('Name')){
-              console.log(values.Name)
+            if(values.hasOwnProperty('name_app') || values.hasOwnProperty('id_app')){
+              console.log("success");
+              const insertObj = {
+                name_app : values.name_app,
+                id_app : values.id_app,
+              }
+              
+              console.log(insertObj);
+
+              axios.post(`http://localhost:8080/api/sp/ingangs/insert`, insertObj)
+              .then(res => {
+                res.data.key = res.data.idx;
+                delete res.data.idx;
+                console.log(res.data);
+                newData = newData.concat(res.data);
+                this.setState({
+                  users : newData,
+                })
+                window.location.reload();
+              });
             }
+          }
+          else {
+            message.error('모두 입력해주세요.');
+            console.log("실패");
           }
         });
       }
 
       render() {
         const {
-          getFieldDecorator, getFieldsError, getFieldError, isFieldTouched,
+          getFieldDecorator, getFieldError, isFieldTouched,
         } = this.props.form;
-        const appNameError = isFieldTouched('Name') && getFieldError('Name');
-        const appIdError = isFieldTouched('Id') && getFieldError('Id');
+        const appNameError = isFieldTouched('name_app') && getFieldError('name_app');
+        const appIdError = isFieldTouched('id_app') && getFieldError('id_app');
 
         const components = {
           body: {
@@ -451,7 +479,7 @@ class settingIngang extends Component {
                   <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
                     
                     
-                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="Yes" cancelText="No">
+                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
                         <Icon type="logout"/>
                         <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
                         <Link to = {`/`}/>                  
@@ -473,7 +501,7 @@ class settingIngang extends Component {
                 
                 <div style={{ padding: 11, background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
                 <div style={{float:"left"}}>
-                  <Button style={{top : "0.5vh"}} type="primary" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
+                  <Button style={{top : "0.5vh"}} type="danger" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
                 </div>
                 <div style={{marginRight : "20vh",textAlign : "center", marginBottom:"1.5vh", fontWeight : "600", fontSize : "2vh", marginTop : "1vh"}}>
                   타 인강 목록
@@ -493,38 +521,43 @@ class settingIngang extends Component {
                   />
                 
 
-                <Form layout="inline" onSubmit={this.handleSubmit} style={{marginLeft: "4%"}}>
+                <Form layout="inline" style={{marginLeft: "4.5%", display: "flex"}}>
                   <Form.Item
+                  {...formItemLayout}
                     validateStatus={appNameError ? 'error' : ''}
                     help={appNameError || ''}
-                  >
-                    {getFieldDecorator('Name', {
+                    style={{width : "42%", marginRight:"0"}}
+                    
+                  ><div>
+                    {getFieldDecorator('name_app', {
                       rules: [{ required: true, message: '앱 이름을 입력하세요.' }],
                     })(
-                      <Input style={{width: "65vh"}} placeholder="입력" />
+                      <Input placeholder="입력" />
                     )}
+                    </div>
                   </Form.Item>
                   <Form.Item
+                  {...formItemLayout}
                     validateStatus={appIdError ? 'error' : ''}
                     help={appIdError || ''}
-                  >
-                    {getFieldDecorator('Id', {
+                    style={{width : "42%"}}
+                  ><div>
+                    {getFieldDecorator('id_app', {
                       rules: [{ required: true, message: '앱 번호를 입력하세요.' }],
                     })(
-                      <Input style={{width: "65vh"}} placeholder="입력" />
-                    )}
+                      <Input placeholder="입력" />
+                    )}</div>
                   </Form.Item>
-                  <Form.Item style={{float: "right"}}>
-                      
+                  <Form.Item style={{float: "right"}}
+                  {...formItemLayout}>
+                      <Popconfirm title = "추가하시겠습니까?" onConfirm={this.handleSubmit} onCancel={() => {console.log("취소")}} okText="확인" cancelText="취소">
                       <Button
                         type="primary"
                         htmlType="submit"
-                        
-                        disabled={hasErrors(getFieldsError())}
                       >
-                        Log in
+                        추가
                       </Button>
-
+                      </Popconfirm>
                   </Form.Item>
                 </Form>
                 </div>

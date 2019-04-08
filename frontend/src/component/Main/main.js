@@ -3,7 +3,6 @@ import {Doughnut} from 'react-chartjs-2';
 import './main.css';
 import {Layout, Menu, Icon, Breadcrumb, Popconfirm, message} from 'antd';
 import {Link} from 'react-router-dom';
-import Cookies from 'js-cookie';
 import axios from 'axios';
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
@@ -40,19 +39,16 @@ const dataSecond = {
 		'타 인강2',
     '타 인강3',
     '타 인강4',
-
 	],
 	datasets: [{
 		data: [300, 100, 200, 150],
 		backgroundColor: [
-		
 		'#86A2EB',
     '#BFCE56',
     '#AE4384',
     '#F9FE56'
 		],
 		hoverBackgroundColor: [
-		
 		'#86A2EB',
     '#BFCE56',
     '#AE4384',
@@ -70,12 +66,15 @@ class main extends Component {
         collapsed: false,
         users : [],
         data : [],
+        authority : ''
       };
     }
     
 
     componentDidMount(){
-      
+      this.setState({
+        authority : this.props.author
+      })
     };
 
     onCollapse = (collapsed) => {
@@ -84,12 +83,12 @@ class main extends Component {
       }
 
     // ============================= 로그아웃 
-
     confirmLogout = (e) =>{
-      axios.get('http://localhost:8080/api/sp/logout')
+      var author = { 'author' : this.state.authority}
+      console.log(author);
+      axios.post('http://localhost:8080/api/sp/logout', author)
             .then(res => console.log(res.data));
 
-      Cookies.remove('admin');
       message.success('로그아웃 성공했습니다.');
 
       setTimeout(() => {
@@ -142,7 +141,7 @@ class main extends Component {
                 <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
                     <Icon type="logout"/>
                     
-                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="Yes" cancelText="No">
+                    <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
                         <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
                         <Link to = {`/`}/>                  
                     </Popconfirm>

@@ -1,3 +1,4 @@
+var models = require('../models');
 module.exports = function (sequelize, DataTypes) {
 
     const branches = sequelize.define('branches', {
@@ -12,7 +13,7 @@ module.exports = function (sequelize, DataTypes) {
         b_blockotherapps : { field: 'b_blockotherapps', type: DataTypes.BOOLEAN},
         b_blockremove : { field: 'b_blockremove', type: DataTypes.BOOLEAN},
         b_blockforcestop : { field: 'b_blockforcestop', type: DataTypes.BOOLEAN},
-
+        thumburl_br : {field : 'thumburl_br', type: DataTypes.STRING(100)},
     }, {
       underscored: true,
       dateStrings: true,
@@ -21,7 +22,16 @@ module.exports = function (sequelize, DataTypes) {
 
       tableName: 'branches'
     });
-
+    branches.associate = function(models) {
+      branches.hasMany(models.students, {
+        foreignKey : "id_br",
+        onDelete : 'cascade'
+      })
+      branches.hasMany(models.teachers, {
+        foreignKey : "id_br",
+        onDelete : 'cascade'
+      })
+    }
     return branches;
   };
   

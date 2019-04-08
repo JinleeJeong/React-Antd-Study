@@ -3,7 +3,7 @@ var router = express.Router();
 var models = require("../models/index.js");
 
 /* GET users listing. */
-router.get('/', (req,res,next) => {
+router.get('/appverinfos', (req,res,next) => {
   models.appverinfo.findAll()
     .then((results) => {
       res.json(results);
@@ -13,61 +13,46 @@ router.get('/', (req,res,next) => {
     });
 });
 
-  // models.appverinfo.create({Name: '홍씨', App: '9', Amount : 10, Teacher : "김백준"})
-  //   .then(result => {
-  //      res.json(result);
-  //   })
-  //   .catch(err => {
-  //      console.error(err);
-  // });
+router.post('/appverinfos/insert', (req, res, next) => {
+  models.appverinfo.create(
+    {
+      version : req.body.version,
+      type : req.body.type,
+      url : req.body.url,
+    }, 
+    ).then(appverinfo => { res.json(appverinfo);
+        
+  }).catch(() => {
+    res.send("Error");
+  });
+});
+
 /* UPDATE appverinfo */
 
-router.put('/update/:id', (req, res, next) => {
+router.put('/appverinfos/update/:id', (req, res, next) => {
   models.appverinfo.update(
     {
-      Name : req.body.Name,
-      App : req.body.App,
-      Amount : req.body.Amount,
+      version : req.body.version,
+      type : req.body.type,
+      url : req.body.url,
     }, 
       {
-        where : { key : req.params.id }
+        where : { idx : req.params.id }
       }).then(users => { res.json(users);
   });
 });
 
 
   /* DELETE appverinfo */
-router.delete('/delete/:id', (req, res, next) =>{
+router.delete('/appverinfos/delete/:id', (req, res, next) =>{
   console.log('Delete Fc');
   models.appverinfo.destroy(
     {
-      where : { key : req.params.id}
+      where : { idx : req.params.id}
     })
   .then(users => {
      res.json(users);
   })
 });
-
-  // models.appverinfo.update({password: '새로운 유저PW'}, {where: {userID: '유저ID'}})
-  // .then(result => {
-  //    res.json(result);
-  // })
-  // .catch(err => {
-  //    console.error(err);
-  // });
-
-
-
-/* GET SINGLE appverinfo BY ID */
-router.get('/:id', function(req, res, next) {
-  appverinfo.findById(req.params.id, function (err, post) {
-    if (err) return next(err);
-    res.json(post);
-  });
-});
-
-
-
-
 
 module.exports = router;

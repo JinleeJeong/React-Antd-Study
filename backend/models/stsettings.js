@@ -9,8 +9,6 @@ module.exports = function (sequelize, DataTypes) {
         ip_tc: { field: 'ip_tc', type : DataTypes.STRING(50)},
         b_lockscreen : { field : 'b_lockscreen', type : DataTypes.BOOLEAN},
         resolution : { field: 'resolution', type: DataTypes.STRING(50)},
-        b_thumb_ad: { field: 'b_thumb_ad', type: DataTypes.BOOLEAN},
-        b_thumb_tc: { field: 'b_thumb_tc', type: DataTypes.BOOLEAN},
     }, {
       underscored: true,
       dateStrings: true,
@@ -20,6 +18,11 @@ module.exports = function (sequelize, DataTypes) {
       tableName: 'stsettings'
     });
 
+    stsettings.associate = function(models) {
+      stsettings.belongsTo(models.students, {
+        foreignKey : "id_st",
+      })
+    }
     return stsettings;
   };
   

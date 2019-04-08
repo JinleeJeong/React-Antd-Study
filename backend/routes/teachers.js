@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var models = require("../models/index.js");
+var jwt = require('jsonwebtoken');
+var secretObj = require('../config/jwt');
 
 /* GET users listing. */
 // router.get('/', (req,res,next) => {
@@ -13,14 +15,14 @@ var models = require("../models/index.js");
 //     });
 // });
 
-// models.teachers.create({id_tc: '홍씨', ip_tc: '9', token_tc : '10', name_tc : "김백준"})
+// models.teachers.create({id_tc: '60St', ip_tc: '50St', token_tc : '100St', name_tc : "50St"})
 //   .then(result => {
 //     res.json(result);
 //   })
 //   .catch(err => {
 //     console.error(err);
 //   });
-// /* UPDATE teachers */
+/* UPDATE teachers */
 
 router.put('/update/:id', (req, res, next) => {
   models.teachers.update(
@@ -34,47 +36,6 @@ router.put('/update/:id', (req, res, next) => {
       }).then(users => { res.json(users);
   });
 });
-
-
-  /* DELETE teachers */
-router.delete('/delete/:id', (req, res, next) =>{
-  console.log('Delete Fc');
-  models.teachers.destroy(
-    {
-      where : { key : req.params.id}
-    })
-  .then(users => {
-     res.json(users);
-  })
-});
-
-  // models.teachers.update({password: '새로운 유저PW'}, {where: {userID: '유저ID'}})
-  // .then(result => {
-  //    res.json(result);
-  // })
-  // .catch(err => {
-  //    console.error(err);
-  // });
-
-
-
-/* GET SINGLE teachers BY ID */
-router.get('/:id', function(req, res, next) {
-  teachers.findById(req.params.id, function (err, post) {
-    if (err) return next(err);
-    res.json(post);
-  });
-});
-
-/* SAVE teachers */
-// router.post('/', function(req, res, next) {
-//   teachers.create(req.body, function (err, post) {
-//     if (err) return next(err);
-//     res.json(post);
-//   });
-// });
-
-
 
 
 module.exports = router;

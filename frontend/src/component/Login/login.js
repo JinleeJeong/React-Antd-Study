@@ -18,36 +18,38 @@ class login extends Component {
         this.handleSubmit = this.handleSubmit.bind(this);
     }
     componentDidMount(){
-          
+        // axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/students')
+        axios.get('http://localhost:8080/api/sp/students')
+        .then(res => {
+            console.log(res.data);
+        })
     }
     handleSubmit = (e) => {
         e.preventDefault();
         this.props.form.validateFields((err, values) => {
           if (!err) {
             console.log('Received values of form: ', values);
-            if(values.id_ad === 'tech'){
+
+                // axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/login', values, {withCredentials: true})
                 axios.post('http://localhost:8080/api/sp/login', values, {withCredentials: true})
                 .then(result => {
-                    
-                    if(result.data !== 'failed') {
+                    if(result.data.message !== 'failed') {
                         message.success('Admin Success');
                         setTimeout(() => {
-                            this.props.history.push('/main')
+                            this.props.history.push(`/main:`+result.data.userName)
+                            console.log(result.data.userName, '여기');
                             return window.location.reload();
                           }, 1000)
                     } else {
                         console.log(result.data);
                         message.error('사용자 정보를 확인해주세요.');
+                        this.setState({loading : false});
                     }
                 })
-            }  else {
-                message.error('아이디 비밀번호를 확인하세요.');
-                this.setState({loading : false});
-            }
         }
         else {
-            message.error('접근 오류입니다.');
-            window.location.reload();
+            message.error('사용자 정보를 확인해주세요.');
+            this.setState({loading : false});
             }
         });
     };
