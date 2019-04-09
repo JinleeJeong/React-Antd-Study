@@ -3,7 +3,7 @@ var router = express.Router();
 var models = require("../models/index.js");
 
 /* GET users listing. */
-router.get('/stusg', (req,res,next) => {
+router.get('/sp/stusg', (req,res,next) => {
   models.stlogs.findAll()
     .then((results) => {
       models.stlogs.find({
@@ -35,7 +35,7 @@ router.get('/stusg', (req,res,next) => {
 // });
 /* UPDATE stlogs */
 
-router.put('/members/:id', (req, res, next) => {
+router.put('/sp/members/:id', (req, res, next) => {
   models.stlogs.update(
     {
       id_st : req.body.id_st,
@@ -51,7 +51,7 @@ router.put('/members/:id', (req, res, next) => {
 });
 
 
-router.delete('/stusg/delete/:id', (req, res, next) =>{
+router.delete('/sp/stusg/delete/:id', (req, res, next) =>{
   models.stlogs.destroy(
     {
       where : { idx : req.params.id}

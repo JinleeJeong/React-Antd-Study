@@ -3,7 +3,7 @@ var router = express.Router();
 var models = require("../models/index.js");
 
 /* GET users listing. */
-router.get('/appverinfos', (req,res,next) => {
+router.get('/sp/appverinfos', (req,res,next) => {
   models.appverinfo.findAll()
     .then((results) => {
       res.json(results);
@@ -13,7 +13,7 @@ router.get('/appverinfos', (req,res,next) => {
     });
 });
 
-router.post('/appverinfos/insert', (req, res, next) => {
+router.post('/sp/appverinfos/insert', (req, res, next) => {
   models.appverinfo.create(
     {
       version : req.body.version,
@@ -29,7 +29,7 @@ router.post('/appverinfos/insert', (req, res, next) => {
 
 /* UPDATE appverinfo */
 
-router.put('/appverinfos/update/:id', (req, res, next) => {
+router.put('/sp/appverinfos/update/:id', (req, res, next) => {
   models.appverinfo.update(
     {
       version : req.body.version,
@@ -44,7 +44,7 @@ router.put('/appverinfos/update/:id', (req, res, next) => {
 
 
   /* DELETE appverinfo */
-router.delete('/appverinfos/delete/:id', (req, res, next) =>{
+router.delete('/sp/appverinfos/delete/:id', (req, res, next) =>{
   console.log('Delete Fc');
   models.appverinfo.destroy(
     {

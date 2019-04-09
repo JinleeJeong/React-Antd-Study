@@ -4,16 +4,16 @@ var models = require("../models/index.js");
 
 
 /* GET users listing. */
-// router.get('/', (req,res,next) => {
-//   models.branches.findAll()
-//     .then((results) => {
-//       res.json(results);
-//     })
-//     .catch(err => {
-//       console.error(err);
-//     });
-// });
-/* UPDATE branches */
+router.get('/sp/', (req,res,next) => {
+  models.branches.findAll()
+    .then((results) => {
+      res.json(results);
+    })
+    .catch(err => {
+      console.error(err);
+    });
+});
+
 
 //   models.branches.create({id_br: '60St', name_br: '100St', token_br : '100St', ip_br : "50St", colorbit : 1, fps : 1, 
 //   // b_blockbrowser : '', b_blockotherapps : '', b_blockremove : '', b_blockforcestop : ''

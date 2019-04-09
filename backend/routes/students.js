@@ -3,7 +3,7 @@ var router = express.Router();
 var models = require("../models/index.js");
 var sequelize = require('sequelize')
 /* GET users listing. */
-router.get('/students', (req,res,next) => {
+router.get('/sp/students', (req,res,next) => {
   models.students.findAll({include : [
     {
       model : models.teachers, 
@@ -32,30 +32,27 @@ router.get('/students', (req,res,next) => {
       sequelize.col('stlogs.id_st'),
     )
     },
-
-
-
-
   ] 
   })
     .then((results) => {
-      res.json(results);
+      models.applist.findAll({where : {b_disabled : false}})
+      .then((applist) => {
+        console.log('여기요', results[0].branch.id_br);
+        res.json({result : results, applist : applist, setting : { b : results[0].branch.id_br, c : results[0].branch.id_br}});
+      })
+
     })
     .catch(err => {
       console.error(err);
     });
+
+
+
 });
 
-// models.students.create({id_st: '60St', name_st: '50St', id_tc : '50St', id_br : "50St", token_st : "100St"})
-//   .then(result => {
-//      res.json(result);
-//   })
-//   .catch(err => {
-//      console.error(err);
-// });
 /* UPDATE students */
 
-router.put('/update/:id', (req, res, next) => {
+router.put('/sp/update/:id', (req, res, next) => {
   models.students.update(
     {
       Name : req.body.Name,
@@ -70,7 +67,7 @@ router.put('/update/:id', (req, res, next) => {
 
 
   /* DELETE students */
-router.delete('/delete/:id', (req, res, next) =>{
+router.delete('/sp/delete/:id', (req, res, next) =>{
   console.log('Delete Fc');
   models.students.destroy(
     {

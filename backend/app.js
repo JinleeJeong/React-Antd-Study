@@ -8,7 +8,7 @@ var body = require('body-parser');
 var app = express();
 var models = require('./models/index');
 
-var admins = require('./routes/admins');
+var certification = require('./routes/certification');
 var applist = require('./routes/applist');
 var appverinfo = require('./routes/appverinfo');
 var branches = require('./routes/branches');
@@ -52,15 +52,15 @@ app.use(function(req, res, next) {
   next();
 });
 
-app.use('/api/sp/', admins);
-app.use('/api/sp/', applist);
-app.use('/api/sp/', branches);
-app.use('/api/sp/', loginlogs);
-app.use('/api/sp/', stlogs);
-app.use('/api/sp/', stsettings);
-app.use('/api/sp/', students);
-app.use('/api/sp/', teachers);
-app.use('/api/sp/', appverinfo);
+app.use('/api', certification);
+app.use('/api', applist);
+app.use('/api', branches);
+app.use('/api', loginlogs);
+app.use('/api', stlogs);
+app.use('/api', stsettings);
+app.use('/api', students);
+app.use('/api', teachers);
+app.use('/api', appverinfo);
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));

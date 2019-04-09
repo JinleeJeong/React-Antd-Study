@@ -3,8 +3,13 @@ var router = express.Router();
 var models = require("../models/index.js");
 const sequelize = require('sequelize');
 
+var failedMessage = 'failed';
+var failedResultCode = 414;
+var successMessage = 'success';
+var successResultCode = 200;
+
 // ================================================== 전체 앱별 사용이력
-router.get('/all', (req,res,next) => {
+router.get('/sp/all', (req,res,next) => {
   models.applist.findAll()
     .then((results) => {
       res.json(results);
@@ -15,7 +20,7 @@ router.get('/all', (req,res,next) => {
 });
 
 // =========================================== 인강별 ( b_ingang true && false)
-router.get('/ingangs/all', (req,res,next) => {
+router.get('/sp/ingangs/all', (req,res,next) => {
   models.applist.findAll({where : {b_ingang : {ne : null}}})
     .then((results) => {
       res.json(results);
@@ -28,30 +33,30 @@ router.get('/ingangs/all', (req,res,next) => {
 
 // ================================================== Setting 사용 금지 & 허용 목록
 /* GET users listing. */
-router.get('/disableapps', (req,res,next) => {
+router.get('/sp/disableapps', (req,res,next) => {
   models.applist.findAll({where : { b_disabled : true}})
     .then((results) => {
-      res.json(results);
+      res.json({ resultCode : successResultCode, message : successMessage, disableApps : results});
     })
     .catch(err => {
-      console.error(err);
+      res.json({ resultCode : failedResultCode, message : failedMessage});
     });
 });
 
-router.get('/ableapps', (req,res,next) => {
+router.get('/sp/ableapps', (req,res,next) => {
     models.applist.findAll({where : {b_disabled : false}})
       .then((results) => {
-        res.json(results);
+        res.json({ resultCode : successResultCode, message : successMessage, ableApps : results});
       })
       .catch(err => {
-        console.error(err);
+        res.json({ resultCode : failedResultCode, message : failedMessage});
       });
   });
 
 
 /* UPDATE User */
 
-router.put('/disableapps/:id', (req, res, next) => {
+router.put('/sp/disableapps/:id', (req, res, next) => {
   models.applist.update(
     {
       id_app : req.body.id_app,
@@ -59,15 +64,15 @@ router.put('/disableapps/:id', (req, res, next) => {
     }, 
       {
         where : { idx : req.params.id }
-      }).then(users => { res.json(users);
+      }).then(results => { res.json({resultCode : successResultCode, message : successMessage, ableApps : results});
         
   }).catch(() => {
-    res.send("Error");
+    res.json({ resultCode : failedResultCode, message : failedMessage});
   });
 
 });
 
-router.put('/update/right/:id', (req, res, next) => {
+router.put('/sp/update/right/:id', (req, res, next) => {
   models.applist.update(
     {
       b_disabled : true
@@ -80,7 +85,7 @@ router.put('/update/right/:id', (req, res, next) => {
 
 });
 
-router.put('/update/left/:id', (req, res, next) => {
+router.put('/sp/update/left/:id', (req, res, next) => {
   models.applist.update(
     {
       b_disabled : false
@@ -94,7 +99,7 @@ router.put('/update/left/:id', (req, res, next) => {
 });
 
   /* DELETE User */
-router.delete('/delete/:id', (req, res, next) =>{
+router.delete('/sp/delete/:id', (req, res, next) =>{
   console.log('Delete Fc');
   models.applist.destroy(
     {
@@ -105,7 +110,7 @@ router.delete('/delete/:id', (req, res, next) =>{
   })
 });
 
-router.post('/disableapps/insert', (req, res, next) => {
+router.post('/sp/disableapps/insert', (req, res, next) => {
   console.log(req.body);
   models.applist.create(
     {
@@ -125,7 +130,7 @@ router.post('/disableapps/insert', (req, res, next) => {
 
 // =========================================== 타사 ingang
 
-router.get('/ingangs', (req,res,next) => {
+router.get('/sp/ingangs', (req,res,next) => {
   models.applist.findAll({where : { b_ingang : true}})
     .then((results) => {
       res.json(results);
@@ -135,7 +140,7 @@ router.get('/ingangs', (req,res,next) => {
     });
 });
 
-router.delete('/ingangs/delete/:id', (req, res, next) =>{
+router.delete('/sp/ingangs/delete/:id', (req, res, next) =>{
   models.applist.destroy(
     {
       where : { idx : req.params.id}
@@ -145,7 +150,7 @@ router.delete('/ingangs/delete/:id', (req, res, next) =>{
   })
 });
 
-router.put('/ingangs/update/:id', (req, res, next) => {
+router.put('/sp/ingangs/update/:id', (req, res, next) => {
   models.applist.update(
     {
       id_app : req.body.id_app,
@@ -161,7 +166,7 @@ router.put('/ingangs/update/:id', (req, res, next) => {
 
 });
 
-router.post('/ingangs/insert', (req, res, next) => {
+router.post('/sp/ingangs/insert', (req, res, next) => {
   console.log(req.body);
   models.applist.create(
     {

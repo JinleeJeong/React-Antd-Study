@@ -5,7 +5,7 @@ var jwt = require('jsonwebtoken');
 var secretObj = require('../config/jwt');
 
 /* GET users listing. */
-// router.get('/', (req,res,next) => {
+// router.get('/sp/', (req,res,next) => {
 //   models.teachers.findAll()
 //     .then((results) => {
 //       res.json(results);
@@ -24,7 +24,7 @@ var secretObj = require('../config/jwt');
 //   });
 /* UPDATE teachers */
 
-router.put('/update/:id', (req, res, next) => {
+router.put('/sp/update/:id', (req, res, next) => {
   models.teachers.update(
     {
       Name : req.body.Name,
