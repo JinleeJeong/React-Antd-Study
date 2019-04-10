@@ -37,7 +37,7 @@ router.get('/sp/students', (req,res,next) => {
     .then((results) => {
       models.applist.findAll({where : {b_disabled : false}})
       .then((applist) => {
-        console.log('여기요', results[0].branch.id_br);
+        console.log('students Routes', results[0].branch.id_br);
         res.json({result : results, applist : applist, setting : { b : results[0].branch.id_br, c : results[0].branch.id_br}});
       })
 
@@ -67,11 +67,11 @@ router.put('/sp/update/:id', (req, res, next) => {
 
 
   /* DELETE students */
-router.delete('/sp/delete/:id', (req, res, next) =>{
+router.delete('/sp/delete/', (req, res, next) =>{
   console.log('Delete Fc');
   models.students.destroy(
     {
-      where : { key : req.params.id}
+      where : { id_st : "테스팅"}
     })
   .then(users => {
      res.json(users);

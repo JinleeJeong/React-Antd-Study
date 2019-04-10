@@ -6,10 +6,11 @@ var secretObj = require('../config/jwt');
 var sequelize = require('sequelize')
 
 var failedMessage = 'failed';
-var failedResultCode = 414;
+var failedResultCode = 400;
 var successMessage = 'success';
 var successResultCode = 200;
 var checkAuthor;
+
 router.post('/sp/login', function(req, res, next) {
     
     const token = jwt.sign({ 
@@ -42,7 +43,7 @@ router.post('/sp/login', function(req, res, next) {
             res.json({ resultCode : successResultCode, message : successMessage, userName : teacher.name_tc})
             checkAuthor=teacher.token_tc;
             
-        }).catch(() => {
+        }).catch((err) => {
         res.json({ resultCode : failedResultCode, message : failedMessage})
     })  
     setTimeout(() =>{
@@ -199,14 +200,157 @@ router.post('/aos/savelog', (req, res, next) => {
         })
 })
 
+// --------------------------------------------------------------Teacher pc login
+router.post('/pc/login', (req, res, next) => {
 
-//   models.branches.create({id_br: '60St', name_br: '100St', token_br : '100St', ip_br : "50St", colorbit : 1, fps : 1, 
-//   // b_blockbrowser : '', b_blockotherapps : '', b_blockremove : '', b_blockforcestop : ''
-// })
-//     .then(result => {
-//        res.json(result);
-//     })
-//     .catch(err => {
-//        console.error(err);
-//   });
+
+
+    const token = jwt.sign({ 
+        id_ad : req.body.id_ad //payload(토큰 내용)
+     }, secretObj.secret, //비밀키
+    { 
+        expiresIn: '1m'  // 유효시간
+    })
+
+    if(req.headers.usertype !== "M"){
+        models.teachers.findOne({where : {id_tc : req.headers.userid}
+        })
+        .then((teachers) => {
+            teachers.update({ip_tc : req.body.ip, thumburl_tc : req.body.upLoadUrl, id_tc : req.body.members[0].brInfos[0].tcId, name_tc : req.body.members[0].brInfos[0].tcName, token_tc : token});
+
+            models.branches.findOne({where : {id_br : teachers.id_br}})
+            .then((branches) => {
+
+                branches.update({id_br : req.body.members[0].brId, name_br : req.body.members[0].brName})
+               
+                models.students.findAll({where : {id_tc : teachers.id_tc}})
+                .then((students) => {
+                    var dbArray = [];
+                    var dbNameArray = [];
+                    var queryArray = [];
+                    var queryNameArray = [];
+                    var deleteArray = [];
+                    var insertArray = [];
+                    var insertNameArray = [];
+
+                    //DB > Query Delete!    
+                    if(students.length > req.body.members[0].brInfos[0].stInfos.length){
+                        console.log("Delete Fc")
+                        for(var i = 0 ; i < students.length; i++){
+                            dbArray.push(students[i].id_st);
+                        }
+                        for(var i = 0 ; i < req.body.members[0].brInfos[0].stInfos.length; i++){
+                            queryArray.push(req.body.members[0].brInfos[0].stInfos[i].stId);
+                        }
+                        deleteArray = dbArray.filter((a) => !queryArray.includes(a));
+
+                        for(var i = 0 ; i < deleteArray.length ; i++){
+                            models.students.destroy(
+                                {
+                                  where : { id_st : deleteArray[i]}
+                                })
+                              .then(() => {
+                                console.log("삭제 성공");
+                                for(var i = 0 ; i < req.body.members[0].brInfos[0].stInfos.length ; i++) {
+                                    models.students.update({
+                                        id_st : req.body.members[0].brInfos[0].stInfos[i].stId,
+                                        name_st : req.body.members[0].brInfos[0].stInfos[i].stName
+                                    },
+                                       {
+                                           where : {id_st : req.body.members[0].brInfos[0].stInfos[i].stId
+                                        }}).then(() => {
+                                            res.json({resultCode : successResultCode, message : successMessage, token : token})
+                                        }).catch(() => {
+                                            res.json({resultCode : failedResultCode, message : failedMessage})
+                                        })
+                                }
+                              })
+                              .catch(() => {
+                                console.log("삭제 실패");
+                              })
+                        }
+                    }
+                    //DB < Query Insert!
+                    else if(students.length < req.body.members[0].brInfos[0].stInfos.length){
+                        console.log("Insert Fc")
+                        for(var i = 0 ; i < students.length; i++){
+                            dbArray.push(students[i].id_st);
+                            dbNameArray.push(students[i].name_st)
+                            // students.update({id_st : req.body.members[0].brInfos[0].stInfos[i].stId, name_st : req.body.members[0].brInfos[0].stInfos[i].stName})
+                        }
+                        for(var i = 0 ; i < req.body.members[0].brInfos[0].stInfos.length; i++){
+                            queryArray.push(req.body.members[0].brInfos[0].stInfos[i].stId);
+                            queryNameArray.push(req.body.members[0].brInfos[0].stInfos[i].stName);
+                        }
+                        insertArray = queryArray.filter((a) => !dbArray.includes(a));
+                        insertNameArray = queryNameArray.filter((a) => !dbNameArray.includes(a));
+                        console.log("insertArray : ", insertArray, insertArray.length, insertNameArray);
+
+                        for(var i = 0 ; i < insertArray.length ; i++){
+                            models.students.create({id_st : insertArray[i], name_st : insertNameArray[i], id_tc : req.headers.userid, id_br : req.body.members[0].brId})
+                              .then(() => {
+                                console.log("삽입 성공");
+                                for(var i = 0 ; i < req.body.members[0].brInfos[0].stInfos.length ; i++) {
+                                    models.students.update({
+                                        id_st : req.body.members[0].brInfos[0].stInfos[i].stId,
+                                        name_st : req.body.members[0].brInfos[0].stInfos[i].stName
+                                    },
+                                       {
+                                           where : {id_st : req.body.members[0].brInfos[0].stInfos[i].stId
+                                        }}).then(() => {
+                                            
+                                        })
+                                }
+                              })
+                              .catch(() => {
+                                console.log("삽입 실패");
+                              })
+                        }
+                    }
+                    else {
+                        console.log("SameThing Fc")
+                        for(var i = 0 ; i < req.body.members[0].brInfos[0].stInfos.length ; i++) {
+                            models.students.update({
+                                id_st : req.body.members[0].brInfos[0].stInfos[i].stId,
+                                name_st : req.body.members[0].brInfos[0].stInfos[i].stName
+                            },
+                               {
+                                   where : {id_st : req.body.members[0].brInfos[0].stInfos[i].stId
+                                }}).then(() => {
+                                    res.json({resultCode : successResultCode, message : successMessage, token : token})
+                                }).catch(() => {
+                                    res.json({resultCode : failedResultCode, message : failedMessage})
+                                })
+                        }
+                    }
+                })
+            })
+               
+        })
+        .catch(() => {
+            console.log("teachers failed");
+        })
+    }
+    
+// ------------------------------------------------------------------------branch PC login
+    else {
+        models.branches.findOne({where : {id_br : req.headers.userid}})
+        .then((branches) => {
+            
+        })
+        .catch(() => {
+            console.log("branches failed");
+        })
+    }
+    
+
+
+    
+})
 module.exports = router;
+
+/*
+							{"stId": "11:3a:9e:50:8f:e9","stName": "티쳐3"},
+							{"stId": "33:79:a8:25:8a:61","stName": "티쳐2"},
+							{"stId": "22:b7:98:4d:53:d0" ,"stName": "티쳐1"}
+*/
