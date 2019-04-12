@@ -6,6 +6,7 @@ module.exports = function (sequelize, DataTypes) {
         name_app: { field: 'name_app', type: DataTypes.STRING(50)},
         b_ingang : { field : 'b_ingang', type : DataTypes.BOOLEAN, defaultValue : false},
         b_disabled : { field: 'b_disabled', type: DataTypes.BOOLEAN, defaultValue : true},
+        b_browser : { field: 'b_browser', type: DataTypes.BOOLEAN, defaultValue : false},
       }, {
         underscored: true,
         dateStrings: true,

@@ -6,7 +6,7 @@ var models = require("../models/index.js");
 router.get('/sp/stusg', (req,res,next) => {
   models.stlogs.findAll()
     .then((results) => {
-      models.stlogs.find({
+      models.stlogs.findOne({
         include : [{model : models.students, where : {id_st : "50St"}}]
       })
       .then( result2 => {

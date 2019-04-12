@@ -69,16 +69,20 @@ router.put('/sp/update/:id', (req, res, next) => {
   /* DELETE students */
 router.delete('/sp/delete/', (req, res, next) =>{
   console.log('Delete Fc');
-  models.students.destroy(
+  models.tcsettings.destroy()
+  .then(users => {
+     res.json(users);
+  })
+});
+router.delete('/sp/deleted', (req, res, next) =>{
+  console.log('Delete Fc');
+  models.stsettings.destroy(
     {
-      where : { id_st : "테스팅"}
+      where : { ip_tc : "0.0.0.1"}
     })
   .then(users => {
      res.json(users);
   })
 });
-
-
-
 
 module.exports = router;
