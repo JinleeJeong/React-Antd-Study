@@ -3,6 +3,7 @@ var router = express.Router();
 var models = require("../models/index.js");
 const sequelize = require('sequelize');
 
+const Op = sequelize.Op;
 var failedMessage = 'failed';
 var failedResultCode = 414;
 var successMessage = 'success';
@@ -21,7 +22,7 @@ router.get('/sp/all', (req,res,next) => {
 
 // =========================================== 인강별 ( b_ingang true && false)
 router.get('/sp/ingangs/all', (req,res,next) => {
-  models.applist.findAll({where : {b_ingang : {ne : null}}})
+  models.applist.findAll({where : {b_ingang : {[Op.ne] : null}}})
     .then((results) => {
       res.json(results);
     })
