@@ -14,7 +14,7 @@ var appverinfo = require('./routes/appverinfo');
 var branches = require('./routes/branches');
 var loginlogs = require('./routes/loginlogs');
 var stlogs = require('./routes/stlogs');
-var stsettings = require('./routes/stsettings');
+var pcApi = require('./routes/pcApi');
 var students = require('./routes/students');
 var teachers = require('./routes/teachers');
 // ------------ Connection
@@ -57,7 +57,7 @@ app.use('/api', applist);
 app.use('/api', branches);
 app.use('/api', loginlogs);
 app.use('/api', stlogs);
-app.use('/api', stsettings);
+app.use('/api', pcApi);
 app.use('/api', students);
 app.use('/api', teachers);
 app.use('/api', appverinfo);
