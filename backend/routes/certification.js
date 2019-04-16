@@ -12,11 +12,11 @@ var successResultCode = 200;
 var checkAuthor;
 const Op = sequelize.Op;
 router.post('/sp/login', function(req, res, next) {
-    
+  
     const token = jwt.sign({ 
         id_ad : req.body.id_ad //payload(토큰 내용)
      }, secretObj.secret, //비밀키
-    { 
+    {
         expiresIn: '1m'  // 유효시간
     })
 
