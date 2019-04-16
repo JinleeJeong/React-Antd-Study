@@ -44,7 +44,6 @@ app.use(body.json());
 
 app.use(function(req, res, next) {
 
-  //모든 도메인의 요청을 허용하지 않으면 웹브라우저에서 CORS 에러를 발생시킨다.
   // res.setHeader('Access-Control-Allow-Origin', 'http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080');
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
