@@ -11,6 +11,7 @@ var successMessage = 'success';
 var successResultCode = 200;
 var checkAuthor;
 const Op = sequelize.Op;
+
 router.post('/sp/login', function(req, res, next) {
   
     const token = jwt.sign({ 
