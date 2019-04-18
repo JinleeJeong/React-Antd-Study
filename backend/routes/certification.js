@@ -5,6 +5,8 @@ var jwt = require('jsonwebtoken');
 var secretObj = require('../config/jwt');
 var sequelize = require('sequelize')
 
+const crypto = require('crypto');
+
 var failedMessage = 'failed';
 var failedResultCode = 400;
 var successMessage = 'success';
@@ -12,12 +14,31 @@ var successResultCode = 200;
 var checkAuthor;
 const Op = sequelize.Op;
 
+function encrypt(text){
+
+    var cipher = crypto.createCipher('aes-256-cbc','3de222e0600511e98647d663bd873d93'); 
+    var encipheredContent = cipher.update(text,'utf8','base64'); 
+    encipheredContent += cipher.final('base64');
+
+    return encipheredContent;
+}
+/* 암호화에서 문자열 16자 이하면, update는 null값을 가진다. 
+ 항상 update + final 형식으로 암호화를 해야한다.
+*** Key값은 클라이언트에 노출되지 않도록 한다. *** */
+function decrypt(text){
+ var decipher = crypto.createDecipher('aes-256-cbc', '3de222e0600511e98647d663bd873d93');
+ var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
+ decipheredPlaintext += decipher.final('utf8');
+
+ return decipheredPlaintext;
+}
+
 router.post('/sp/login', function(req, res, next) {
-  
+    
     const token = jwt.sign({ 
         id_ad : req.body.id_ad //payload(토큰 내용)
      }, secretObj.secret, //비밀키
-    {
+    { 
         expiresIn: '1m'  // 유효시간
     })
 
@@ -133,6 +154,9 @@ router.post('/aos/login', (req, res, next) => {
     })
     .then((students) => {
         console.log('여기요', students.branch.id_br);
+        var resultApplist = [];
+        var resultIngangApps = [];
+        var resultBrowsers = [];
         models.stsettings.findOne({where : {id_st : req.headers.userid}})
         .then((stsettings) => {
             stsettings.update({os : req.headers.os, osver : req.headers.osver, ip_st : req.body.ip, resolution : req.body.resolution, token_st : token})
@@ -141,8 +165,37 @@ router.post('/aos/login', (req, res, next) => {
                 models.applist.findAll({where : {b_ingang : {[Op.ne] : null}}})
                 .then((ingangApps) => {
                     models.applist.findAll({where : {b_browser : {[Op.ne] : null}}})
-                    .then((browers) => {
-                    
+                    .then((browsers) => {
+                    for(var i = 0 ; i < applist.length ; i++){
+                        resultApplist.push({
+                            idx : applist[i].idx,
+                            appId : applist[i].id_app,
+                            appName : applist[i].name_app,
+                            bIngang : applist[i].b_ingang,
+                            bDisabled : applist[i].b_disabled,
+                            bBrowser : applist[i].b_browser
+                        })
+                    }
+                    for(var i = 0 ; i < ingangApps.length ; i++){
+                        resultIngangApps.push({
+                            idx : ingangApps[i].idx,
+                            appId : ingangApps[i].id_app,
+                            appName : ingangApps[i].name_app,
+                            bIngang : ingangApps[i].b_ingang,
+                            bDisabled : ingangApps[i].b_disabled,
+                            bBrowser : ingangApps[i].b_browser
+                        })
+                    }
+                    for(var i = 0 ; i < browsers.length ; i++){
+                        resultBrowsers.push({
+                            idx : browsers[i].idx,
+                            appId : browsers[i].id_app,
+                            appName : browsers[i].name_app,
+                            bIngang : browsers[i].b_ingang,
+                            bDisabled : browsers[i].b_disabled,
+                            bBrowser : browsers[i].b_browser
+                        })
+                    }
                         res.json({resultCode : successResultCode, message : successMessage, 
                             token : token, userName : students.id_st, 
                             mgrUploadURL : students.branch.thumburl_br, tcrUploadURL : students.teacher.thumburl_tc,
@@ -151,7 +204,7 @@ router.post('/aos/login', (req, res, next) => {
                                         bBlockForceStop : students.branch.b_blockforcestop, 
                                         colorBit : students.branch.colorbit, imgFps : students.branch.fps, 
                                         bLockscreen : stsettings.b_lockscreen},
-                            appList : applist, ingangApps : ingangApps, browers : browers            
+                            appList : {allowedApps : resultApplist, ingangApps : resultIngangApps, browsers : resultBrowsers}            
                                         
                         })
                     })

@@ -10,16 +10,20 @@ var key = '3de222e0600511e98647d663bd873d93';
 
 var failedMessage = 'failed';
 var failedResultCode = 400;
-var successMessage = 'success';
 var successResultCode = 200;
 
 function encrypt(text){
-
-    var cipher = crypto.createCipher('aes-256-cbc','3de222e0600511e98647d663bd873d93'); 
-    var encipheredContent = cipher.update(text,'utf8','base64'); 
-    encipheredContent += cipher.final('base64');
-
-    return encipheredContent;
+    if(text !== null) {
+        var cipher = crypto.createCipher('aes-256-cbc','3de222e0600511e98647d663bd873d93'); 
+        var encipheredContent = cipher.update(text,'utf8','base64'); 
+        encipheredContent += cipher.final('base64');
+    
+        return encipheredContent;
+    }
+    else { 
+        return null;
+    }
+    
 }
 /* 암호화에서 문자열 16자 이하면, update는 null값을 가진다. 
  항상 update + final 형식으로 암호화를 해야한다.
@@ -32,100 +36,135 @@ function decrypt(text){
  return decipheredPlaintext;
 }
 
+var successMessage = encrypt('success');
+
+
 // --------------------------------------------------------------PC login
 router.post('/pc/login', (req, res, next) => {
 
-    const token = jwt.sign({ 
+    const tokenJwt = jwt.sign({ 
         id_ad : req.body.id_ad //payload(토큰 내용)
      }, secretObj.secret, //비밀키
     { 
         expiresIn: '1m'  // 유효시간
     })
-
+    var token = encrypt(tokenJwt);
     // 브랜치 로그인
     if(req.headers.usertype === "M"){
         
-        models.branches.findOne({where : { id_br : req.headers.userid }}) // 브랜치 찾기 & 업데이트
+        models.branches.findOne({where : { id_br : decrypt(req.body.members.brId) }}) // 브랜치 찾기 & 업데이트
         .then((branches) => {
             console.log("=====================================================Branches Login==============================================================")
-            branches.update({ip_br : decrypt(req.body.ip), thumburl_br : decrypt(req.body.upLoadUrl), id_br : req.headers.userid, name_br : decrypt(req.body.members.brName), token_br : token, os_br : req.headers.os})
-            .catch((err)=>{console.log('branches update : ',err.original.detail)})
-            models.students.destroy({where: { id_br : req.headers.userid}})
+            branches.update({ip_br : decrypt(req.body.ip), thumburl_br : decrypt(req.body.upLoadUrl), id_br : decrypt(req.body.members.brId), name_br : decrypt(req.body.members.brName), os_br : req.headers.os})
+            .catch((err)=>{console.log('branches update 최신 : ',err.original.detail)})
+
+            models.managers.findOne({where : {id_user : req.headers.userid}})
+            .then((managers) => {managers.update({id_br : decrypt(req.body.members.brId), token_mgr : token})})
+            .catch(() => {models.managers.create({id_br : decrypt(req.body.members.brId), token_mgr : token, id_user : req.headers.userid})})
+
+            models.students.destroy({where: { id_br : decrypt(req.body.members.brId)}})
             .then(() => 
             {
                 console.log("학생 삭제");
-                models.teachers.destroy({where : {id_br : req.headers.userid}})
+                models.teachers.destroy({where : {id_br : decrypt(req.body.members.brId)}})
                 .then(() => 
                 {
+                    var bulkCreateTeachers = [];
+                    var bulkCreateTcsettings = [];
+                    var bulkCreateStudents = [];
+                    var bulkCreateStsettings = [];
                     console.log("선생 삭제");
                     for(let i = 0 ; i < req.body.members.brInfos.length; i++){
-                        models.teachers.create({id_tc : decrypt(req.body.members.brInfos[i].tcrId), name_tc : decrypt(req.body.members.brInfos[i].tcrName), id_br : decrypt(req.body.members.brId)})
-                        .then(() => {
-                            console.log("선생 생성");
-                            models.tcsettings.create({id_tc : decrypt(req.body.members.brInfos[i].tcrId)})
-                            .then(() => {console.log("tcsetting Success")}).catch((err) => {console.log("tcsetting 존재", err.original.detail)})
-
-                            for(let j = 0 ; j < req.body.members.brInfos[i].stInfos.length; j++){
-                                models.students.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName), id_tc : decrypt(req.body.members.brInfos[i].tcrId), id_br : req.headers.userid})
-                                .then(() => {console.log("students create")}).catch((err) => {console.log("students 존재", err.original.detail)});
-
-                                models.stsettings.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)})
-                                .then(() => {console.log("stsettings create")}).catch((err) => {console.log("stsettings 존재", err.original.detail)});
-                            }
-                            
-                        }).catch((err) => {console.log("teachers 존재", err.original.detail)});
-                        
-            }
-
-        }).then(() => {
-            var resultArray = []
-            models.branches.findOne({where : {id_br : req.headers.userid}})
-            .then((branches) => {
-                models.students.findAll({include : [
-                    {
-                      model : models.stsettings,
-                      attributes : [`id_st`, `ip_st`, `no_st`, `b_lockscreen`],
-                      where : sequelize.where(
-                      sequelize.col('stsetting.id_st'),
-                      sequelize.col('students.id_st')
-                    )
-                    }
-                ], attributes : [`name_st`]})
-                .then((students) => {
-                    for(var i = 0 ; i<students.length ; i++) {
-                        resultArray.push({
-                            stId : students[i].stsetting.id_st,
-                            stIp : students[i].stsetting.ip_st,
-                            stNo : students[i].stsetting.no_st,
-                            bLockscreen : students[i].stsetting.b_lockscreen,
-                            stName : students[i].name_st
+                        bulkCreateTeachers.push({
+                            id_tc : decrypt(req.body.members.brInfos[i].tcrId), 
+                            name_tc : decrypt(req.body.members.brInfos[i].tcrName), 
+                            id_br : decrypt(req.body.members.brId)
                         })
+                        bulkCreateTcsettings.push({
+                            id_tc : decrypt(req.body.members.brInfos[i].tcrId)
+                        })
+                        for(let j = 0 ; j < req.body.members.brInfos[i].stInfos.length; j++){
+                            bulkCreateStudents.push({
+                                id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), 
+                                name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName), 
+                                id_tc : decrypt(req.body.members.brInfos[i].tcrId), 
+                                id_br : decrypt(req.body.members.brId)
+                            })
+                            bulkCreateStsettings.push({
+                                id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)
+                            })
+                        }  
                     }
-                    var resultResponse = {
-                        resultCode : successResultCode, message : successMessage, token : token, 
-                        settings : { bBlockBrower : branches.b_blockbrowser, bBlockOtherApps  : branches.b_blockotherapps, 
-                        bBlockRemoveApps : branches.b_blockremove,
-                        bBlockForceStop : branches.b_blockforcestop, 
-                        colorBit : branches.colorbit, imgFps : branches.fps, 
-                        }, stInfo : resultArray
-                    }
-                    res.json(resultResponse);
-                })
-            }).catch((err)=>{console.log("branches findOne Error", err.original.detail)})
-           
-        }).catch((err)=>{console.log("Branches Login Err", err.original.detail)})
+                    models.teachers.bulkCreate(bulkCreateTeachers)
+                    .then(() => {
+                        models.tcsettings.bulkCreate(bulkCreateTcsettings)
+                        .catch((err) => {console.log("tcsettings 존재", err.original.detail)})
+
+                        models.stsettings.bulkCreate(bulkCreateStsettings)
+                        .catch((err) => {console.log("stsettings 존재", err.original.detail)})
+
+                        models.students.bulkCreate(bulkCreateStudents)
+                        .then(() => {
+                            var resultArray = []
+                            models.branches.findOne({where : {id_br : decrypt(req.body.members.brId)}})
+                            .then((branches) => {
+                                models.students.findAll({include : [
+                                    {
+                                    model : models.stsettings,
+                                    attributes : [`id_st`, `ip_st`, `no_st`, `b_lockscreen`],
+                                    where : sequelize.where(
+                                    sequelize.col('stsetting.id_st'),
+                                    sequelize.col('students.id_st')
+                                    )
+                                    }
+                                ], attributes : [`name_st`]})
+                                .then((students) => {
+                                    for(var i = 0 ; i<students.length ; i++) {
+                                        resultArray.push({
+                                            stId : encrypt(students[i].stsetting.id_st),
+                                            stIp : encrypt(students[i].stsetting.ip_st),
+                                            stNo : students[i].stsetting.no_st,
+                                            stName : encrypt(students[i].name_st),
+                                            bLockscreen : students[i].stsetting.b_lockscreen
+                                        })
+                                    }
+                                    var resultResponse = {
+                                        resultCode : successResultCode, message : successMessage, token : token, 
+                                        settings : { bBlockBrowser : branches.b_blockbrowser, bBlockOtherApps  : branches.b_blockotherapps, 
+                                        bBlockRemoveApps : branches.b_blockremove,
+                                        bBlockForceStop : branches.b_blockforcestop, 
+                                        colorBit : branches.colorbit, imgFps : branches.fps, 
+                                        }, stInfo : resultArray
+                                    }
+                                    res.json(resultResponse);
+                                })
+                            }).catch((err)=>{console.log("branches findOne Error", err.original.detail)})
+                        }).catch((err) => {console.log("students 존재", err.original.detail)})   
+                    }).catch((err) => {console.log("Teachers 존재 or Zero", err.original.detail)})
+        })
     }).catch((err)=>{console.log("Students Destroy Err", err.original.detail)})
 
         }).catch(() => {
-            console.log("=====================================================Branches Insert==============================================================")
-            models.branches.create({ip_br : decrypt(req.body.ip), thumburl_br : decrypt(req.body.upLoadUrl), id_br : req.headers.userid, name_br : decrypt(req.body.members.brName), token_br : token, os_br : req.headers.os})
+
+            models.branches.create({ip_br : decrypt(req.body.ip), thumburl_br : decrypt(req.body.upLoadUrl), id_br : decrypt(req.body.members.brId), name_br : decrypt(req.body.members.brName), os_br : req.headers.os})
             .then(() => {
+            console.log("=====================================================Branches Insert==============================================================")
+            models.managers.findOne({where : {id_user : req.headers.userid}})
+            .then((managers) => {managers.update({id_br : decrypt(req.body.members.brId), token_mgr : token})})
+            .catch(() => {models.managers.create({id_br : decrypt(req.body.members.brId), token_mgr : token, id_user : req.headers.userid})})
             var alreadyTeachers = [];
             var alreadyTeachersName = [];
             var newTeachers = [];
             var newTeachersName = [];
             var updateTeachers = [];
             var insertTeachers = [];
+            var newTeachersString;
+
+            var bulkCreateTeachers = [];
+            var bulkCreateTcsettings = [];
+            var bulkCreateStudents = [];
+            var bulkCreateStsettings = [];
+            
             console.log("브랜치 로그인 : 생성 ");
             models.teachers.findAll() 
             .then((teachersAll) => {
@@ -140,7 +179,7 @@ router.post('/pc/login', (req, res, next) => {
                 }
                 console.log('존재 선생 : ',alreadyTeachers, alreadyTeachersName)
                 console.log('새로운 선생 : ',newTeachers, newTeachersName);
-                var newTeachersString
+                
                 updateTeachers = alreadyTeachers.filter((a) => newTeachers.includes(a));
                 console.log("update : ", updateTeachers); // 업데이트 선생 ID
                 insertTeachers = newTeachers.filter((a) => !alreadyTeachers.includes(a));
@@ -152,14 +191,6 @@ router.post('/pc/login', (req, res, next) => {
                         console.log("Teachers update!!", z);
                         models.students.destroy({where : {id_tc : newTeachers[z]}})
                         .catch((err) => {console.log("Teachers Update in students null", err.original.detail)})
-
-                        for(let j = 0 ; j < req.body.members.brInfos[z].stInfos.length; j++){
-                            models.students.create({id_st : decrypt(req.body.members.brInfos[z].stInfos[j].stId), name_st : decrypt(req.body.members.brInfos[z].stInfos[j].stName), id_tc : decrypt(req.body.members.brInfos[z].tcrId), id_br : req.headers.userid})
-                            .catch((err) => {console.log("students 존재", err.original.detail)})
-                            models.stsettings.create({id_st : decrypt(req.body.members.brInfos[z].stInfos[j].stId)})
-                            .then(() => {console.log("stsettings create")}).catch((err) => {console.log("stsettings 존재", err.original.detail)});
-    
-                        }
 
                         models.teachers.update(
                             {
@@ -173,107 +204,86 @@ router.post('/pc/login', (req, res, next) => {
                             .catch((err) => {console.log("teachers Update X", err.original.detail)})
                     }
                     else {
+                        bulkCreateTeachers.push({
+                            id_tc : newTeachers[z], 
+                            name_tc :newTeachersName[z], 
+                            id_br : decrypt(req.body.members.brId)
+                        })
                         console.log("Teachers Insert!!", z);
-                        models.teachers.create({id_tc : newTeachers[z], name_tc :newTeachersName[z], id_br : decrypt(req.body.members.brId)})
-                        .catch((err) => {console.log("teachers 존재 " ,err.original.detail)})
                     }
                 }
                 for(var i = 0 ; i < insertTeachers.length ; i++){
-                    models.tcsettings.create({id_tc : insertTeachers[i]})
-                    .then(() => {console.log("tcsetting Create Success")}).catch((err) => {console.log("tcsettings Already 존재", err.original.detail)})
+                    bulkCreateTcsettings.push({
+                        id_tc : insertTeachers[i]
+                    })
                     for(let j = 0 ; j < req.body.members.brInfos[i].stInfos.length; j++){
-                        models.students.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName), id_tc : decrypt(req.body.members.brInfos[i].tcrId), id_br : req.headers.userid})
-                        .catch((err) => {console.log("studetns 존재", err.original.detail)})
-                        models.stsettings.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)})
-                        .then(() => {console.log("stsettings create")}).catch((err) => {console.log("stsettings 존재", err.original.detail)});
-
+                        bulkCreateStudents.push({
+                            id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), 
+                            name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName), 
+                            id_tc : decrypt(req.body.members.brInfos[i].tcrId), 
+                            id_br : decrypt(req.body.members.brId)
+                        })
+                        bulkCreateStsettings.push({
+                            id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)
+                        })
                     }
                 }
-            }).catch((err)=>{console.log("Teachers Zero Err", err.original.detail)})
-        })
-            .then(() => {
-                var resultArray = []
-                models.branches.findOne({where : {id_br : req.headers.userid}})
-                .then((branches) => {
-                    models.students.findAll({include : [
-                        {
-                          model : models.stsettings,
-                          attributes : [`id_st`, `ip_st`, `no_st`, `b_lockscreen`],
-                          where : sequelize.where(
-                          sequelize.col('stsetting.id_st'),
-                          sequelize.col('students.id_st')
-                        )
-                        }
-                    ], attributes : [`name_st`]})
-                    .then((students) => {
-                        for(var i = 0 ; i<students.length ; i++) {
-                            resultArray.push({
-                                stId : students[i].stsetting.id_st,
-                                stIp : students[i].stsetting.ip_st,
-                                stNo : students[i].stsetting.no_st,
-                                bLockscreen : students[i].stsetting.b_lockscreen,
-                                stName : students[i].name_st
-                            })
-                        }
-                        var resultResponse = {
-                            resultCode : successResultCode, message : successMessage, token : token, 
-                            settings : { bBlockBrower : branches.b_blockbrowser, bBlockOtherApps  : branches.b_blockotherapps, 
-                            bBlockRemoveApps : branches.b_blockremove,
-                            bBlockForceStop : branches.b_blockforcestop, 
-                            colorBit : branches.colorbit, imgFps : branches.fps, 
-                            }, stInfo : resultArray
-                        }
-                        res.json(resultResponse);
-                    })
-
-            })
-            })
-            .catch(() => {
-                var resultArray = []
-                models.branches.findOne({where : {id_br : req.headers.userid}})
-                .then((branches) => {
-                    models.students.findAll({include : [
-                        {
-                          model : models.stsettings,
-                          attributes : [`id_st`, `ip_st`, `no_st`, `b_lockscreen`],
-                          where : sequelize.where(
-                          sequelize.col('stsetting.id_st'),
-                          sequelize.col('students.id_st')
-                        )
-                        }
-                    ], attributes : [`name_st`]})
-                    .then((students) => {
-                        for(var i = 0 ; i<students.length ; i++) {
-                            resultArray.push({
-                                stId : students[i].stsetting.id_st,
-                                stIp : students[i].stsetting.ip_st,
-                                stNo : students[i].stsetting.no_st,
-                                bLockscreen : students[i].stsetting.b_lockscreen,
-                                stName : students[i].name_st
-                            })
-                        }
-                        var resultResponse = {
-                            resultCode : successResultCode, message : successMessage, token : token, 
-                            settings : { bBlockBrower : branches.b_blockbrowser, bBlockOtherApps  : branches.b_blockotherapps, 
-                            bBlockRemoveApps : branches.b_blockremove,
-                            bBlockForceStop : branches.b_blockforcestop, 
-                            colorBit : branches.colorbit, imgFps : branches.fps, 
-                            }, stInfo : resultArray
-                        }
-                        res.json(resultResponse);
-                    })
-                })
                 
-            })
-    
-        })
+                models.teachers.bulkCreate(bulkCreateTeachers)
+                .then(() => {
+
+                    models.tcsettings.bulkCreate(bulkCreateTcsettings)
+                        .catch((err) => {console.log("tcsettings 존재", err.original.detail)})
+
+                        models.stsettings.bulkCreate(bulkCreateStsettings)
+                        .catch((err) => {console.log("stsettings 존재", err.original.detail)})
+
+                        models.students.bulkCreate(bulkCreateStudents)
+                        .then(() => {
+                            var resultArray = []
+                            models.branches.findOne({where : {id_br : decrypt(req.body.members.brId)}})
+                            .then((branches) => {
+                                models.students.findAll({include : [
+                                    {
+                                    model : models.stsettings,
+                                    attributes : [`id_st`, `ip_st`, `no_st`, `b_lockscreen`],
+                                    where : sequelize.where(
+                                    sequelize.col('stsetting.id_st'),
+                                    sequelize.col('students.id_st')
+                                    )
+                                    }
+                                ], attributes : [`name_st`]})
+                                .then((students) => {
+                                    for(var i = 0 ; i<students.length ; i++) {
+                                        resultArray.push({ 
+                                            stId : encrypt(students[i].stsetting.id_st),
+                                            stIp : encrypt(students[i].stsetting.ip_st),
+                                            stNo : students[i].stsetting.no_st,
+                                            stName : encrypt(students[i].name_st),
+                                            bLockscreen : students[i].stsetting.b_lockscreen
+                                            
+                                        })
+                                    }
+                                    var resultResponse = {
+                                        resultCode : successResultCode, message : successMessage, token : token, 
+                                        settings : { bBlockBrowser : branches.b_blockbrowser, bBlockOtherApps  : branches.b_blockotherapps, 
+                                        bBlockRemoveApps : branches.b_blockremove,
+                                        bBlockForceStop : branches.b_blockforcestop, 
+                                        colorBit : branches.colorbit, imgFps : branches.fps, 
+                                        }, stInfo : resultArray
+                                    }
+                                    res.json(resultResponse);
+                                })
+                        }).catch((err)=>{console.log("branches findOne Error", err.original.detail)})
+                    }).catch((err) => {console.log("students 존재", err.original.detail)})  
+                })
+
+            }).catch((err)=>{console.log("Teachers Zero Err", err.original.detail)})
+        })})
     }
     // 선생 로그인
 
     else {
-        
-        // console.log('check :',decrypt(req.body.members.brName));
-        console.log('선생 : ',decrypt('RnV3R0FJNW9tdzFhWWM0K2NGeGMyRGRkNzZwWnZXdWZDZ21GQ2tvPQ=='));
         models.branches.update(
         {
             name_br : decrypt(req.body.members.brName)
@@ -291,6 +301,8 @@ router.post('/pc/login', (req, res, next) => {
                     console.log("tcsetting Update");
                     models.students.destroy({where : { id_tc : req.headers.userid}})
                     .then(() => {
+                        var bulkCreateStudents = [];
+                        var bulkCreateStsettings = [];
                         console.log("학생 삭제");
                         for(var i = 0 ; i < req.body.members.brInfos.length ; i++){
                             if(req.headers.userid === decrypt(req.body.members.brInfos[i].tcrId)){
@@ -299,54 +311,96 @@ router.post('/pc/login', (req, res, next) => {
 
                                 console.log("생성하는 곳: ", decrypt(req.body.members.brInfos[i].tcrId))
                                 for(var j = 0 ; j < req.body.members.brInfos[i].stInfos.length ; j++){
-                                    console.log("ID : ",  decrypt(req.body.members.brInfos[i].stInfos[j].stId), "Name : ",  decrypt(req.body.members.brInfos[i].stInfos[j].stName))
-                                    models.students.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName), id_tc : req.headers.userid, id_br : decrypt(req.body.members.brId)})
-                                    
-                                    models.stsettings.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), ip_tc : decrypt(req.body.ip)})
-                                    .then(() => {console.log("stsettings create")}).catch((err) => {console.log("stsettings Create 존재",err.original.detail)});
+                                    bulkCreateStudents.push({
+                                        id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId),
+                                         name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName),
+                                          id_tc : req.headers.userid,
+                                           id_br : decrypt(req.body.members.brId)
+                                    })
+                                    bulkCreateStsettings.push({
+                                        id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId),
+                                         ip_tc : decrypt(req.body.ip)
+                                    })
                                     models.stsettings.update({ip_tc : decrypt(req.body.ip)}, {
                                         where : {id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)}
-                                    }).then(() => {console.log("stsettings Update")}).catch((err) => {console.log("stsettings Update 최신",err.original.detail)});
-                                    
+                                    }).then(() => {console.log("stsettings Update")}).catch((err) => {console.log("stsettings Update 최신",err.original.detail)}); 
                                 }
                             } 
                             else {
                                 console.log("Another Teachers", i);
                         }
                     }
-                }).then(() => {
-                    models.branches.findOne({where : {id_br : decrypt(req.body.members.brId)}})
-                    .then((branches) => {
-                        models.stsettings.findAll({attributes : [`id_st`, `ip_st`, `no_st`, `b_lockscreen`]}).then((stsettings) => {
-                            var resultResponse = {
-                                resultCode : successResultCode, message : successMessage, token : token, 
-                                settings : { bBlockBrower : branches.b_blockbrowser, bBlockOtherApps  : branches.b_blockotherapps, 
-                                bBlockRemoveApps : branches.b_blockremove,
-                                bBlockForceStop : branches.b_blockforcestop, 
-                                colorBit : branches.colorbit, imgFps : branches.fps, 
-                                }, stInfo : stsettings
-                            }
-                            res.json(resultResponse);
+                    
+                        models.students.bulkCreate(bulkCreateStudents)
+                        .then(() => {
+                            var resultArray = []
+
+                            models.stsettings.bulkCreate(bulkCreateStsettings)
+                            .catch((err) => {console.log("stsettings Create 최신", err.original.detail)})
+
+                            models.branches.findOne({where : {id_br : decrypt(req.body.members.brId)}})
+                            .then((branches) => {
+                                models.students.findAll({include : [
+                                    {
+                                        model : models.stsettings,
+                                        attributes : [`id_st`, `ip_st`, `no_st`, `b_lockscreen`],
+                                        where : sequelize.where(
+                                            sequelize.col('stsetting.id_st'),
+                                            sequelize.col('students.id_st')
+                                        )
+                                    }
+                                ], attributes : ['name_st'], where : {id_tc : req.headers.userid}})
+                                .then((students) => {
+                                    for(var i = 0 ; i<students.length ; i++) {
+                                        resultArray.push({
+                                            stId : encrypt(students[i].stsetting.id_st),
+                                            stIp : encrypt(students[i].stsetting.ip_st),
+                                            stNo : students[i].stsetting.no_st,
+                                            stName : encrypt(students[i].name_st),
+                                            bLockscreen : students[i].stsetting.b_lockscreen
+                                            
+                                        })
+                                    }
+        
+                                    var resultResponse = {
+                                        resultCode : successResultCode, message : successMessage, token : token, 
+                                        settings : { bBlockBrowser : branches.b_blockbrowser, bBlockOtherApps  : branches.b_blockotherapps, 
+                                        bBlockRemoveApps : branches.b_blockremove,
+                                        bBlockForceStop : branches.b_blockforcestop, 
+                                        colorBit : branches.colorbit, imgFps : branches.fps, 
+                                        }, stInfo : resultArray
+                                    }
+                                    res.json(resultResponse);
+                                })
+                            })
                         })
-                    })
-                })
-                .catch(()=>{
+                        
+                    
+                }).catch(()=>{
                     console.log("학생 없음");
                     models.tcsettings.findOne({where : {id_tc : req.headers.userid}})
                     .then((tcsettings) => {tcsettings.update({ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), token_tc : token, os_tc : req.headers.os})})
                     .catch(() => {models.tcsettings.create({id_tc : req.headers.userid, ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), token_tc : token, os_tc : req.headers.os})})
+                    
+                    var bulkCreateStudents = [];
+                    var bulkCreateStsettings = [];
+
                     for(var i = 0 ; i < req.body.members.brInfos.length ; i++){
                         if(req.headers.userid === decrypt(req.body.members.brInfos[i].tcrId)){
-                            teachers.update({id_br : decrypt(req.body.members.brId), name_tc : decrypt(req.body.members.brInfos[i].tcrName)},{where : {id_tc : req.headers.userid}})
+                            models.teachers.update({id_br : decrypt(req.body.members.brId), name_tc : decrypt(req.body.members.brInfos[i].tcrName)},{where : {id_tc : req.headers.userid}})
                             .then(() => {console.log("teachers Update")}).catch(() => {console.log("teachers 최신")});
 
                             console.log("생성하는 곳: ", decrypt(req.body.members.brInfos[i].tcrId))
                             for(var j = 0 ; j < req.body.members.brInfos[i].stInfos.length ; j++){
-                                console.log("ID : ",  decrypt(req.body.members.brInfos[i].stInfos[j].stId), "Name : ",  decrypt(req.body.members.brInfos[i].stInfos[j].stName))
-                                models.students.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName), id_tc : req.headers.userid, id_br : decrypt(req.body.members.brId)})
-                                
-                                models.stsettings.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), ip_tc : decrypt(req.body.ip)})
-                                .then(() => {console.log("stsettings create")}).catch((err) => {console.log("stsettings Create 존재", err.original.detail)});
+                                bulkCreateStudents.push({
+                                    id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), 
+                                    name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName), 
+                                    id_tc : req.headers.userid, 
+                                    id_br : decrypt(req.body.members.brId)
+                                })
+                                bulkCreateStsettings.push({
+                                    id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), ip_tc : decrypt(req.body.ip)
+                                })
                                 models.stsettings.update({ip_tc : decrypt(req.body.ip)}, {
                                     where : {id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)}
                                 }).then(() => {console.log("stsettings Update")}).catch((err) => {console.log("stsettings Update 최신", err.original.detail)});
@@ -356,16 +410,69 @@ router.post('/pc/login', (req, res, next) => {
                             console.log("Another Teachers");
                         }
                     }
+                    models.students.bulkCreate(bulkCreateStudents)
+                        .then(() => {
+                            var resultArray = []
+
+                            models.stsettings.bulkCreate(bulkCreateStsettings)
+                            .catch((err) => {console.log("stsettings Create 최신", err.original.detail)})
+
+                            models.branches.findOne({where : {id_br : decrypt(req.body.members.brId)}})
+                            .then((branches) => {
+                                models.students.findAll({include : [
+                                    {
+                                        model : models.stsettings,
+                                        attributes : [`id_st`, `ip_st`, `no_st`, `b_lockscreen`],
+                                        where : sequelize.where(
+                                            sequelize.col('stsetting.id_st'),
+                                            sequelize.col('students.id_st')
+                                        )
+                                    }
+                                ], attributes : ['name_st'], where : {id_tc : req.headers.userid}})
+                                .then((students) => {
+                                    for(var i = 0 ; i<students.length ; i++) {
+                                        resultArray.push({
+                                            stId : encrypt(students[i].stsetting.id_st),
+                                            stIp : encrypt(students[i].stsetting.ip_st),
+                                            stNo : students[i].stsetting.no_st,
+                                            stName : encrypt(students[i].name_st),
+                                            bLockscreen : students[i].stsetting.b_lockscreen
+                                            
+                                        })
+                                    }
+        
+                                    var resultResponse = {
+                                        resultCode : successResultCode, message : successMessage, token : token, 
+                                        settings : { bBlockBrowser : branches.b_blockbrowser, bBlockOtherApps  : branches.b_blockotherapps, 
+                                        bBlockRemoveApps : branches.b_blockremove,
+                                        bBlockForceStop : branches.b_blockforcestop, 
+                                        colorBit : branches.colorbit, imgFps : branches.fps, 
+                                        }, stInfo : resultArray
+                                    }
+                                    res.json(resultResponse);
+                                })
+                            })
+                        })
+
                 })
             }
 
             else{
                 for(var i = 0 ; i < req.body.members.brInfos.length ; i++)
                 {
-                    models.teachers.create({id_br : decrypt(req.body.members.brId), id_tc : decrypt(req.body.members.brInfos[i].tcrId), name_tc : decrypt(req.body.members.brInfos[i].tcrName)})
-                    .then(() => {console.log("=====================================================Teachers Insert==============================================================")})
-                    .catch((err) => {console.log("teachers 존재 : ", err.original.detail)})                    
+                    if(req.headers.userid === decrypt(req.body.members.brInfos[i].tcrId)){
+                        models.teachers.create({id_br : decrypt(req.body.members.brId), id_tc : decrypt(req.body.members.brInfos[i].tcrId), name_tc : decrypt(req.body.members.brInfos[i].tcrName)})
+                        .then(() => {console.log("=====================================================Teachers Insert==============================================================")})
+                        .catch((err) => {console.log("teachers 존재 : ", err.original.detail)})  
+                    }
+                    else{
+                        console.log("Another Teachers create", i)
+                    }  
                 }
+                var bulkCreateStudents = [];
+                var bulkCreateStsettings = [];
+                models.students.destroy({where : {id_tc : req.headers.userid}})
+                .catch((err) => {console.log("students clean", err.original.detail)})
                 models.tcsettings.create({id_tc : req.headers.userid, ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), token_tc : token, os_tc : req.headers.os})
                 .then(() => {
 
@@ -374,11 +481,15 @@ router.post('/pc/login', (req, res, next) => {
 
                             console.log("생성하는 곳: ", decrypt(req.body.members.brInfos[i].tcrId))
                             for(var j = 0 ; j < req.body.members.brInfos[i].stInfos.length ; j++){
-                                console.log("ID : ",  decrypt(req.body.members.brInfos[i].stInfos[j].stId), "Name : ",  decrypt(req.body.members.brInfos[i].stInfos[j].stName), req.body.members.brInfos[i].stInfos.length)
-                                models.students.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName), id_tc : req.headers.userid, id_br : decrypt(req.body.members.brId)})
-                                .then(() => {console.log("students create")}).catch((err) => {console.log("students Create 존재", err.original.detail)});
-                                models.stsettings.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), ip_tc : decrypt(req.body.ip)})
-                                .then(() => {console.log("stsettings create")}).catch((err) => {console.log("stsettings Create 존재", err.original.detail)});
+                                bulkCreateStudents.push({
+                                    id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId),
+                                    name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName), 
+                                    id_tc : req.headers.userid,
+                                    id_br : decrypt(req.body.members.brId)
+                                })
+                                bulkCreateStsettings.push({
+                                    id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), ip_tc : decrypt(req.body.ip)
+                                })
                                 models.stsettings.update({ip_tc : decrypt(req.body.ip)}, {
                                     where : {id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)}
                                 }).then(() => {console.log("stsettings Update")}).catch((err) => {console.log("stsettings Update 최신", err.original.detail)});
@@ -386,28 +497,55 @@ router.post('/pc/login', (req, res, next) => {
                             }
                         } 
                         else {
-                            console.log("Another Teachers");
+                            console.log("Another Teachers Students Create", i);
                         }
                     }
-                }).then(() => {
-                    models.branches.findOne({where : {id_br : decrypt(req.body.members.brId)}})
-                    .then((branches) => {
-                        models.stsettings.findAll({attributes : [`id_st`, `ip_st`, `no_st`, `b_lockscreen`]}).then((stsettings) => {
-                            var resultResponse = {
-                                resultCode : successResultCode, message : successMessage, token : token, 
-                                settings : { bBlockBrower : branches.b_blockbrowser, bBlockOtherApps  : branches.b_blockotherapps, 
-                                bBlockRemoveApps : branches.b_blockremove,
-                                bBlockForceStop : branches.b_blockforcestop, 
-                                colorBit : branches.colorbit, imgFps : branches.fps, 
-                                }, stInfo : stsettings
-                            }
-                            res.json(resultResponse);
-                        })
-                    })
-                }).catch(()=>{console.log("tcsettings 최신", err.original.detail)})
                 
+                    models.students.bulkCreate(bulkCreateStudents)
+                        .then(() => {
+                            var resultArray = []
+
+                            models.stsettings.bulkCreate(bulkCreateStsettings)
+                            .catch((err) => {console.log("stsettings Create 최신", err.original.detail)})
+
+                            models.branches.findOne({where : {id_br : decrypt(req.body.members.brId)}})
+                            .then((branches) => {
+                                models.students.findAll({include : [
+                                    {
+                                        model : models.stsettings,
+                                        attributes : [`id_st`, `ip_st`, `no_st`, `b_lockscreen`],
+                                        where : sequelize.where(
+                                            sequelize.col('stsetting.id_st'),
+                                            sequelize.col('students.id_st')
+                                        )
+                                    }
+                                ], attributes : ['name_st'], where : {id_tc : req.headers.userid}})
+                                .then((students) => {
+                                    for(var i = 0 ; i<students.length ; i++) {
+                                        resultArray.push({
+                                            stId : encrypt(students[i].stsetting.id_st),
+                                            stIp : encrypt(students[i].stsetting.ip_st),
+                                            stNo : students[i].stsetting.no_st,
+                                            stName : encrypt(students[i].name_st),
+                                            bLockscreen : students[i].stsetting.b_lockscreen,
+                                            
+                                        })
+                                    }
+        
+                                    var resultResponse = {
+                                        resultCode : successResultCode, message : successMessage, token : token, 
+                                        settings : { bBlockBrowser : branches.b_blockbrowser, bBlockOtherApps  : branches.b_blockotherapps, 
+                                        bBlockRemoveApps : branches.b_blockremove,
+                                        bBlockForceStop : branches.b_blockforcestop, 
+                                        colorBit : branches.colorbit, imgFps : branches.fps, 
+                                        }, stInfo : resultArray
+                                    }
+                                    res.json(resultResponse);
+                                })
+                            })
+                        })
+                }).catch(()=>{console.log("tcsettings 최신", err.original.detail)})   
             }
-            
         })
     }
 })
@@ -415,14 +553,14 @@ router.post('/pc/login', (req, res, next) => {
 
 // ------------------------------------------------------------------------ PC logout
 router.post('/pc/logout', (req, res, next) => {
-    models.branches.findOne({where : {token_br : req.headers.token}})
-    .then(branches => {
-        if(branches !== null) {
-            branches.update({token_br : '', ip_br : '', thumburl_br : ''}, {httpOnly: true})
+    models.managers.findOne({where : {id_user : req.headers.userid}})
+    .then(managers => {
+        if(managers !== null) {
+            managers.update({token_mgr : ''}, {httpOnly: true})
             res.json({resultCode : successResultCode, message : successMessage})
         }
         else {
-            models.tcsettings.findOne({where : {token_tc : req.headers.token}})
+            models.tcsettings.findOne({where : {id_tc : req.headers.userid}})
             .then((tcsettings) => {
                 tcsettings.update({token_tc : '', ip_tc : '', thumburl_tc : ''}, {httpOnly : true})
                 res.json({resultCode : successResultCode, message : successMessage})
