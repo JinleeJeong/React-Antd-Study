@@ -3,7 +3,7 @@ var router = express.Router();
 var models = require("../models/index.js");
 const crypto = require('crypto');
 var key = '3de222e0600511e98647d663bd873d93';
-
+// if null checking
 function encrypt(text,key){
 
      var cipher = crypto.createCipher('aes-256-cbc',key); 
