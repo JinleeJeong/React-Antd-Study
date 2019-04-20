@@ -255,9 +255,3 @@ router.post('/aos/savelog', (req, res, next) => {
         })
 })
 module.exports = router;
-
-/*
-							{"stId": "11:3a:9e:50:8f:e9","stName": "티쳐3"},
-							{"stId": "33:79:a8:25:8a:61","stName": "티쳐2"},
-							{"stId": "22:b7:98:4d:53:d0" ,"stName": "티쳐1"}
-*/
