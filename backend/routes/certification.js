@@ -95,7 +95,6 @@ router.post('/sp/logout', (req,res,next) => {
         res.json({resultCode : failedResultCode, message : failedMessage});
     }
   });  
-// password, os, ip 들어옴
 
 router.get('/sp/check', (req,res,next) => {
     let success = 'success!!';
