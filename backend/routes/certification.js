@@ -73,7 +73,6 @@ router.post('/sp/login', function(req, res, next) {
     setTimeout(() =>{
         console.log(checkAuthor)}, 3000);
 });
-// password, os, ip 들어옴
 
 router.post('/sp/logout', (req,res,next) => {
 
