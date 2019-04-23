@@ -26,9 +26,11 @@ function encrypt(text){
         return null;
     }
 }
+
 /* 암호화에서 문자열 16자 이하면, update는 null값을 가진다. 
  항상 update + final 형식으로 암호화를 해야한다.
 *** Key값은 클라이언트에 노출되지 않도록 한다. *** */
+
 function decrypt(text){
  var decipher = crypto.createDecipher('aes-256-cbc', '');
  var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
@@ -79,7 +81,6 @@ router.post('/sp/login', (req, res, next) => {
         })
     })
 });
-// password, os, ip 들어옴
 
 router.post('/sp/logout', (req,res,next) => {
 
@@ -364,5 +365,4 @@ router.post('/aos/savelog', (req, res, next) => {
             res.json({ resultCode : failedResultCode, message : failedMessage })
         })
 })
-
 module.exports = router;
