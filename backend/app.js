@@ -11,7 +11,6 @@ var models = require('./models/index');
 var certification = require('./routes/certification');
 var applist = require('./routes/applist');
 var appverinfo = require('./routes/appverinfo');
-var branches = require('./routes/branches');
 var loginlogs = require('./routes/loginlogs');
 var stlogs = require('./routes/stlogs');
 var pcApi = require('./routes/pcApi');
@@ -41,20 +40,17 @@ app.use(body.urlencoded({
 }));
 app.use(body.json());
 
-
 app.use(function(req, res, next) {
 
-  // res.setHeader('Access-Control-Allow-Origin', 'http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080');
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  //모든 도메인의 요청을 허용하지 않으면 웹브라우저에서 CORS 에러를 발생시킨다.
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'X-Requested-With,content-type, Authorization');
+  res.header('Access-Control-Allow-Credentials', true);
   next();
 });
-
 app.use('/api', certification);
 app.use('/api', applist);
-app.use('/api', branches);
 app.use('/api', loginlogs);
 app.use('/api', stlogs);
 app.use('/api', pcApi);

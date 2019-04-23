@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 var models = require("../models/index.js");
 const crypto = require('crypto');
-var key = '3de222e0600511e98647d663bd873d93';
+var key = '';
 
 function encrypt(text,key){
 
@@ -25,10 +25,10 @@ function decrypt(text,key){
 }
   router.get('/pc/ltest', (req,res, next) => {
     
-    var userid = "NEEW";
-    var os = "NEEWst";
-    var osver = "0020"
-    var ip = "Teacher1"
+    var userid = "M";
+    var os = "Coek else";
+    var osver = "http://10.211.55.7:3200/api/scrimg-upload"
+    var ip = "0020"
     
 
     var hw = encrypt(userid,key);

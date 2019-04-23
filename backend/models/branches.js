@@ -4,7 +4,7 @@ module.exports = function (sequelize, DataTypes) {
     const branches = sequelize.define('branches', {
         id_br: { field: 'id_br', type: DataTypes.STRING(50), allowNull: false , primaryKey : true},
         name_br: { field: 'name_br', type: DataTypes.STRING(100)},
-        token_br : { field : 'token_br', type : DataTypes.STRING(100)},
+        token_br : { field : 'token_br', type : DataTypes.STRING(200)},
         ip_br : { field: 'ip_br', type: DataTypes.STRING(50)},
         colorbit : { field: 'colorbit', type: DataTypes.INTEGER},
         fps : { field: 'fps', type: DataTypes.INTEGER},
@@ -29,6 +29,10 @@ module.exports = function (sequelize, DataTypes) {
         onDelete : 'cascade'
       })
       branches.hasMany(models.teachers, {
+        foreignKey : "id_br",
+        onDelete : 'cascade'
+      })
+      branches.hasMany(models.managers, {
         foreignKey : "id_br",
         onDelete : 'cascade'
       })

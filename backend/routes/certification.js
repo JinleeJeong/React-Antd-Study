@@ -9,126 +9,128 @@ const crypto = require('crypto');
 
 var failedMessage = 'failed';
 var failedResultCode = 400;
-var successMessage = 'success';
+
 var successResultCode = 200;
-var checkAuthor;
+
 const Op = sequelize.Op;
 
 function encrypt(text){
-
-    var cipher = crypto.createCipher('aes-256-cbc','3de222e0600511e98647d663bd873d93'); 
-    var encipheredContent = cipher.update(text,'utf8','base64'); 
-    encipheredContent += cipher.final('base64');
-
-    return encipheredContent;
+    if(typeof text == 'string' && text !== null) {
+        var cipher = crypto.createCipher('aes-256-cbc',''); 
+        var encipheredContent = cipher.update(text,'utf8','base64'); 
+        encipheredContent += cipher.final('base64');
+    
+        return encipheredContent;
+    }
+    else { 
+        return null;
+    }
 }
 /* 암호화에서 문자열 16자 이하면, update는 null값을 가진다. 
  항상 update + final 형식으로 암호화를 해야한다.
 *** Key값은 클라이언트에 노출되지 않도록 한다. *** */
 function decrypt(text){
- var decipher = crypto.createDecipher('aes-256-cbc', '3de222e0600511e98647d663bd873d93');
+ var decipher = crypto.createDecipher('aes-256-cbc', '');
  var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
  decipheredPlaintext += decipher.final('utf8');
 
  return decipheredPlaintext;
 }
+var successMessage = encrypt('success');
 
-router.post('/sp/login', function(req, res, next) {
-    
+router.post('/sp/login', (req, res, next) => {
+
     const token = jwt.sign({ 
-        id_ad : req.body.id_ad //payload(토큰 내용)
+        userId : req.body.userId //payload(토큰 내용)
      }, secretObj.secret, //비밀키
     { 
-        expiresIn: '1m'  // 유효시간
+        expiresIn: '1m'
     })
 
-    models.admins.findOne({ where: { id_ad : req.body.id_ad } }) 
+    models.admins.findOne({ where: { id_ad : req.body.userId } }) 
     .then((admin) => {
-            console.log('Admin : ');
-            admin.update({token_ad : token}, {httpOnly: true})
-            res.json({ resultCode : successResultCode, message : successMessage, userName : admin.name_ad})
-            checkAuthor=admin.token_ad;
+        admin.update({token_ad : token})
+        .then(() => {
+            console.log("Admin Success", admin.id_ad);
+            res.json({ resultCode : successResultCode, message : successMessage, userName : admin.name_ad, token : admin.token_ad})
+        })
+    }).catch(() => {
+        models.branches.findOne({ where: { id_br : req.body.userId } }) 
+        .then((branch) => {
+            branch.update({token_br : token})
+            .then(() => {
+                console.log("Branches Success", branch.id_br);
+                res.json({ resultCode : successResultCode, message : successMessage, userName : branch.name_br, token : branch.token_br})
+            })
+        })
+        .catch(() => {
+            models.teachers.findOne({ where: { id_tc : req.body.userId } }) 
+            .then((teacher) => {
+                teacher.update({token_tc : token})
+                .then(() => {
+                    console.log("teacher Success", teacher.id_tc);
+                    res.json({ resultCode : successResultCode, message : successMessage, userName : teacher.name_br, token : teacher.token_tc})
+                })
+            })
+            .catch(() => {
+                console.log("No teachsers")
+                res.json({resultCode : failedResultCode, message : failedMessage})
+            })
+        })
     })
-
-    models.branches.findOne({ where: { id_br : req.body.id_ad } }) 
-    .then((branch) => {
-            console.log('branch : ');
-            branch.update({token_br : token}, {httpOnly: true})
-            res.json({ resultCode : successResultCode, message : successMessage, userName : branch.name_br})
-            checkAuthor=branch.token_br;
-    })
-        
-    models.teachers.findOne({ where: { id_tc : req.body.id_ad } }) 
-    .then((teacher) => {
-            console.log('teacher : ');
-            teacher.update({token_tc : token}, {httpOnly: true})
-            res.json({ resultCode : successResultCode, message : successMessage, userName : teacher.name_tc})
-            checkAuthor=teacher.token_tc;
-            
-        }).catch((err) => {
-        res.json({ resultCode : failedResultCode, message : failedMessage})
-    })  
-    setTimeout(() =>{
-        console.log(checkAuthor)}, 3000);
 });
 // password, os, ip 들어옴
 
 router.post('/sp/logout', (req,res,next) => {
 
-    if(req.body.author === 'admin') {
-        models.admins.update({ token_ad : '' }, {where : { token_ad : {[Op.ne] : null}}})
-      .then(() => {
-        res.json({resultCode : successResultCode, message : successMessage});
-        })
-    } else if(req.body.author.includes('branches')) {
-        models.branches.update({ token_br : '' },{where : { token_br : {[Op.ne] : null}}})
+    models.admins.findOne({ where: { id_ad : req.body.userId } }) 
+    .then((admin) => {
+        admin.update({token_ad : token})
         .then(() => {
-        res.json({resultCode : successResultCode, message : successMessage});
+            console.log("Admin Success", admin.id_ad);
+            res.json({ resultCode : successResultCode, message : successMessage, userName : admin.name_ad, token : admin.token_ad})
         })
-    } else if(req.body.author.includes('teachers')) {
-        models.teachers.update({ token_tc : '' }, {where : { token_tc : {[Op.ne] : null}}})
-        .then(() => {
-        res.json({resultCode : successResultCode, message : successMessage});
+    }).catch(() => {
+        models.branches.findOne({ where: { id_br : req.body.userId } }) 
+        .then((branch) => {
+            branch.update({token_br : token})
+            .then(() => {
+                console.log("Branches Success", branch.id_br);
+                res.json({ resultCode : successResultCode, message : successMessage, userName : branch.name_br, token : branch.token_br})
+            })
         })
-    } else {
-        res.json({resultCode : failedResultCode, message : failedMessage});
-    }
+        .catch(() => {
+            models.teachers.findOne({ where: { id_tc : req.body.userId } }) 
+            .then((teacher) => {
+                teacher.update({token_tc : token})
+                .then(() => {
+                    console.log("teacher Success", teacher.id_tc);
+                    res.json({ resultCode : successResultCode, message : successMessage, userName : teacher.name_br, token : teacher.token_tc})
+                })
+            })
+            .catch(() => {
+                console.log("No teachsers")
+                res.json({resultCode : failedResultCode, message : failedMessage})
+            })
+        })
+    })
   });  
 // password, os, ip 들어옴
 
-router.get('/sp/check', (req,res,next) => {
-    let success = 'success!!';
-
-        models.admins.findOne({ where: { token_ad : checkAuthor}}) 
-        .then((admin) => {
-            console.log('Admin Exist');
-            res.json({ resultCode : successResultCode, message : successMessage, confirm : success, userName : admin.name_ad})
-        })
-    
-
-        models.branches.findOne({ where: { token_br : checkAuthor}}) 
-        .then((branch) => {
-            console.log('branch Exist');
-            res.json({ resultCode : successResultCode, message : successMessage, confirm : success, userName : branch.name_br})
-        })
-
-        models.teachers.findOne({ where: { token_tc : checkAuthor}}) 
-        .then((teacher) => {
-            console.log('teacher Exist');
-            res.json({ resultCode : successResultCode, message : successMessage, confirm : success, userName : teacher.name_tc})
-        }).catch(() => {
-            res.json({ resultCode : failedResultCode, message : failedMessage })
-        })
-});
-
 // -------------------------------------------------------------aos Login
 router.post('/aos/login', (req, res, next) => {
-    const token = jwt.sign({ 
+    console.log("=========================================Aos Login==============================================")
+    const tokenJwt = jwt.sign({ 
         id_ad : req.headers.userid //payload(토큰 내용)
      }, secretObj.secret, //비밀키
     { 
         expiresIn: '1m'  // 유효시간
     })
+    var token = encrypt(tokenJwt);
+
+    var resultApplist = [];
+    var resultIngangApps = [];
+    var resultBrowsers = [];
     models.students.findOne({ where : { id_st : req.headers.userid },
     include : [
         {
@@ -153,13 +155,72 @@ router.post('/aos/login', (req, res, next) => {
     ]  
     })
     .then((students) => {
-        console.log('여기요', students.branch.id_br);
-        var resultApplist = [];
-        var resultIngangApps = [];
-        var resultBrowsers = [];
-        models.stsettings.findOne({where : {id_st : req.headers.userid}})
-        .then((stsettings) => {
-            stsettings.update({os : req.headers.os, osver : req.headers.osver, ip_st : req.body.ip, resolution : req.body.resolution, token_st : token})
+
+            console.log('students 존재', students.branch.id_br);
+            models.stsettings.findOne({where : {id_st : req.headers.userid}})
+            .then((stsettings) => {
+                stsettings.update({os : req.headers.os, osver : req.headers.osver, ip_st : decrypt(req.body.ip), resolution : decrypt(req.body.resolution), cmdPort : req.body.cmdPort, token_st : decrypt(token)})
+                .catch((err) => {console.log("stsettings 최신", err.original.detail)})
+                models.applist.findAll({where : {b_disabled : false}})
+                .then((applist) => {
+                    models.applist.findAll({where : {b_ingang : { [Op.or] : [true,false] }}})
+                    .then((ingangApps) => {
+                        models.applist.findAll({where : {b_browser : { [Op.ne] : null }}})
+                        .then((browsers) => {
+                    
+                        for(var i = 0 ; i < applist.length ; i++){
+                            resultApplist.push({
+                                idx : applist[i].idx,
+                                appId : encrypt(applist[i].id_app),
+                                appName : encrypt(applist[i].name_app),
+                                bIngang : applist[i].b_ingang,
+                                bDisabled : applist[i].b_disabled,
+                                bBrowser : applist[i].b_browser
+                            })
+                        }
+                        for(var i = 0 ; i < ingangApps.length ; i++){
+                            resultIngangApps.push({
+                                idx : ingangApps[i].idx,
+                                appId : encrypt(ingangApps[i].id_app),
+                                appName : encrypt(ingangApps[i].name_app),
+                                bIngang : ingangApps[i].b_ingang,
+                                bDisabled : ingangApps[i].b_disabled,
+                                bBrowser : ingangApps[i].b_browser
+                            })
+                        }
+                        for(var i = 0 ; i < browsers.length ; i++){
+                            resultBrowsers.push({
+                                idx : browsers[i].idx,
+                                appId : encrypt(browsers[i].id_app),
+                                appName : encrypt(browsers[i].name_app),
+                                bIngang : browsers[i].b_ingang,
+                                bDisabled : browsers[i].b_disabled,
+                                bBrowser : browsers[i].b_browser
+                            })
+                        }
+                            res.json({resultCode : successResultCode, message : successMessage, 
+                                token : token, userName : encrypt(students.id_st), 
+                                mgrUploadURL : encrypt(students.branch.thumburl_br), tcrUploadURL : encrypt(students.teacher.thumburl_tc),
+                                settings : { bBlockBrower : students.branch.b_blockbrowser, bBlockOtherApps  : students.branch.b_blockotherapps, 
+                                            bBlockRemoveApps : students.branch.b_blockremove,
+                                            bBlockForceStop : students.branch.b_blockforcestop, 
+                                            colorBit : students.branch.colorbit, imgFps : students.branch.fps, 
+                                            bLockscreen : stsettings.b_lockscreen},
+                                appList : {allowedApps : resultApplist, ingangApps : resultIngangApps, browsers : resultBrowsers}            
+                                            
+                            })
+                        }).catch((err) => {console.log("browsers Null", err)
+                    })
+                    }).catch((err) => {console.log("ingangApps Null")})
+                }).catch((err) => {console.log("allowedApps Null")})
+            })
+        
+    }).catch(() => {
+        console.log("Students Teachers branches 존재 X")            // Android Login before made Pc Info
+        models.stsettings.create({id_st : req.headers.userid, os : req.headers.os, osver : req.headers.osver, ip_st : decrypt(req.body.ip), resolution : decrypt(req.body.resolution), cmdPort : req.body.cmdPort, token_st : decrypt(token)})
+        .catch((err) => {console.log("stsettings Already")})
+        models.students.create({id_st : req.headers.userid})
+        .then(() => {
             models.applist.findAll({where : {b_disabled : false}})
             .then((applist) => {
                 models.applist.findAll({where : {b_ingang : {[Op.ne] : null}}})
@@ -169,8 +230,8 @@ router.post('/aos/login', (req, res, next) => {
                     for(var i = 0 ; i < applist.length ; i++){
                         resultApplist.push({
                             idx : applist[i].idx,
-                            appId : applist[i].id_app,
-                            appName : applist[i].name_app,
+                            appId : encrypt(applist[i].id_app),
+                            appName : encrypt(applist[i].name_app),
                             bIngang : applist[i].b_ingang,
                             bDisabled : applist[i].b_disabled,
                             bBrowser : applist[i].b_browser
@@ -179,8 +240,8 @@ router.post('/aos/login', (req, res, next) => {
                     for(var i = 0 ; i < ingangApps.length ; i++){
                         resultIngangApps.push({
                             idx : ingangApps[i].idx,
-                            appId : ingangApps[i].id_app,
-                            appName : ingangApps[i].name_app,
+                            appId : encrypt(ingangApps[i].id_app),
+                            appName : encrypt(ingangApps[i].name_app),
                             bIngang : ingangApps[i].b_ingang,
                             bDisabled : ingangApps[i].b_disabled,
                             bBrowser : ingangApps[i].b_browser
@@ -189,40 +250,88 @@ router.post('/aos/login', (req, res, next) => {
                     for(var i = 0 ; i < browsers.length ; i++){
                         resultBrowsers.push({
                             idx : browsers[i].idx,
-                            appId : browsers[i].id_app,
-                            appName : browsers[i].name_app,
+                            appId : encrypt(browsers[i].id_app),
+                            appName : encrypt(browsers[i].name_app),
                             bIngang : browsers[i].b_ingang,
                             bDisabled : browsers[i].b_disabled,
                             bBrowser : browsers[i].b_browser
                         })
                     }
-                        res.json({resultCode : successResultCode, message : successMessage, 
-                            token : token, userName : students.id_st, 
-                            mgrUploadURL : students.branch.thumburl_br, tcrUploadURL : students.teacher.thumburl_tc,
-                            settings : { bBlockBrower : students.branch.b_blockbrowser, bBlockOtherApps  : students.branch.b_blockotherapps, 
-                                        bBlockRemoveApps : students.branch.b_blockremove,
-                                        bBlockForceStop : students.branch.b_blockforcestop, 
-                                        colorBit : students.branch.colorbit, imgFps : students.branch.fps, 
-                                        bLockscreen : stsettings.b_lockscreen},
-                            appList : {allowedApps : resultApplist, ingangApps : resultIngangApps, browsers : resultBrowsers}            
-                                        
+                    res.json({resultCode : successResultCode, message : successMessage, 
+                        token : token, userName : null, mgrUploadURL : null, tcrUploadURL : null, 
+                        settings : {bBlockBrower : null, bBlockOtherApps  : null, 
+                            bBlockRemoveApps : null,
+                            bBlockForceStop : null, 
+                            colorBit : null, imgFps : null, 
+                            bLockscreen : null},
+                        appList : {allowedApps : resultApplist, ingangApps : resultIngangApps, browsers : resultBrowsers}
                         })
-                    })
-                    
-                })
-                
-            })
+                    }).catch((err) => {console.log("browsers Null", err.original.detail)})
+                }).catch((err) => {console.log("ingangApps Null", err.original.detail)})
+            }).catch((err) => {console.log("allowedApps Null", err.original.detail)})
+        }).catch((err) => 
+        {
+            models.stsettings.update({os : req.headers.os, osver : req.headers.osver, ip_st : decrypt(req.body.ip), resolution : decrypt(req.body.resolution), cmdPort : req.body.cmdPort, token_st : decrypt(token)},{
+                where : {id_st : req.headers.userid}
+            }).catch((err) => {console.log("stsettings 최신", err.original.detail)})
+            console.log("Students 존재 Error", err.original.detail)
+            models.applist.findAll({where : {b_disabled : false}})
+            .then((applist) => {
+                models.applist.findAll({where : {b_ingang : {[Op.ne] : null}}})
+                .then((ingangApps) => {
+                    models.applist.findAll({where : {b_browser : {[Op.ne] : null}}})
+                    .then((browsers) => {
+                    for(var i = 0 ; i < applist.length ; i++){
+                        resultApplist.push({
+                            idx : applist[i].idx,
+                            appId : encrypt(applist[i].id_app),
+                            appName : encrypt(applist[i].name_app),
+                            bIngang : applist[i].b_ingang,
+                            bDisabled : applist[i].b_disabled,
+                            bBrowser : applist[i].b_browser
+                        })
+                    }
+                    for(var i = 0 ; i < ingangApps.length ; i++){
+                        resultIngangApps.push({
+                            idx : ingangApps[i].idx,
+                            appId : encrypt(ingangApps[i].id_app),
+                            appName : encrypt(ingangApps[i].name_app),
+                            bIngang : ingangApps[i].b_ingang,
+                            bDisabled : ingangApps[i].b_disabled,
+                            bBrowser : ingangApps[i].b_browser
+                        })
+                    }
+                    for(var i = 0 ; i < browsers.length ; i++){
+                        resultBrowsers.push({
+                            idx : browsers[i].idx,
+                            appId : encrypt(browsers[i].id_app),
+                            appName : encrypt(browsers[i].name_app),
+                            bIngang : browsers[i].b_ingang,
+                            bDisabled : browsers[i].b_disabled,
+                            bBrowser : browsers[i].b_browser
+                        })
+                    }
+                    res.json({resultCode : successResultCode, message : successMessage, 
+                        token : token, userName : null, mgrUploadURL : null, tcrUploadURL : null, 
+                        settings : {bBlockBrower : null, bBlockOtherApps  : null, 
+                            bBlockRemoveApps : null,
+                            bBlockForceStop : null, 
+                            colorBit : null, imgFps : null, 
+                            bLockscreen : null},
+                        appList : {allowedApps : resultApplist, ingangApps : resultIngangApps, browsers : resultBrowsers}
+                        })
+                    }).catch((err) => {console.log("browsers Null", err.original.detail)})
+                }).catch((err) => {console.log("ingangApps Null", err.original.detail)})
+            }).catch((err) => {console.log("allowedApps Null", err.original.detail)})
         })
     })
-    .catch(err => {
-        res.json({token : token ,resultCode : failedResultCode, message : failedMessage })
-      });
 })
 // -------------------------------------------------------------aos Logout
 router.post('/aos/logout', (req, res, next) => {
+    console.log("=========================================Aos Logout==============================================")
     models.stsettings.findOne({where : {token_st : req.headers.token}})
     .then(students => {
-        students.update({token_st : '', os : req.headers.os}, {httpOnly: true})
+        students.update({token_st : null, os : req.headers.os}, {httpOnly: true})
         res.json({resultCode : successResultCode, message : successMessage})
     })
     .catch(() => {
@@ -232,6 +341,7 @@ router.post('/aos/logout', (req, res, next) => {
 // -------------------------------------------------------------aos savelog
 
 router.post('/aos/savelog', (req, res, next) => {
+    console.log("=========================================Aos SaveLog==============================================")
     models.students.findOne({ where : { id_st : req.headers.userid }})
         .then(() => {
             models.stsettings.create({id_st : req.headers.userid, os : req.headers.os})
@@ -254,10 +364,5 @@ router.post('/aos/savelog', (req, res, next) => {
             res.json({ resultCode : failedResultCode, message : failedMessage })
         })
 })
-module.exports = router;
 
-/*
-							{"stId": "11:3a:9e:50:8f:e9","stName": "티쳐3"},
-							{"stId": "33:79:a8:25:8a:61","stName": "티쳐2"},
-							{"stId": "22:b7:98:4d:53:d0" ,"stName": "티쳐1"}
-*/
+module.exports = router;

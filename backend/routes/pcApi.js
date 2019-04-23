@@ -6,15 +6,16 @@ var secretObj = require('../config/jwt');
 var sequelize = require('sequelize')
 
 const crypto = require('crypto');
-var key = '3de222e0600511e98647d663bd873d93';
+var key = '';
+const Op = sequelize.Op;
 
 var failedMessage = 'failed';
 var failedResultCode = 400;
 var successResultCode = 200;
 
 function encrypt(text){
-    if(text !== null) {
-        var cipher = crypto.createCipher('aes-256-cbc','3de222e0600511e98647d663bd873d93'); 
+    if(typeof text == 'string' && text !== null) {
+        var cipher = crypto.createCipher('aes-256-cbc',''); 
         var encipheredContent = cipher.update(text,'utf8','base64'); 
         encipheredContent += cipher.final('base64');
     
@@ -29,7 +30,7 @@ function encrypt(text){
  항상 update + final 형식으로 암호화를 해야한다.
 *** Key값은 클라이언트에 노출되지 않도록 한다. *** */
 function decrypt(text){
- var decipher = crypto.createDecipher('aes-256-cbc', '3de222e0600511e98647d663bd873d93');
+ var decipher = crypto.createDecipher('aes-256-cbc', '');
  var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
  decipheredPlaintext += decipher.final('utf8');
 
@@ -119,6 +120,7 @@ router.post('/pc/login', (req, res, next) => {
                                     }
                                 ], attributes : [`name_st`]})
                                 .then((students) => {
+                                    console.log("students length : ",students.length)
                                     for(var i = 0 ; i<students.length ; i++) {
                                         resultArray.push({
                                             stId : encrypt(students[i].stsetting.id_st),
@@ -578,7 +580,7 @@ router.post('/pc/logout', (req, res, next) => {
 // ----------------------------------------------------------------settings
 router.get('/pc/settings', (req, res, next) => {
     var result;
-    models.branches.findOne({attributes : [`b_blockbrowser`, `b_blockotherapps`, `b_blockremove`, `b_blockforcestop`,`colorbit`, `fps`], where : {id_br : decrypt(req.headers.userid)}})
+    models.branches.findOne({attributes : [`b_blockbrowser`, `b_blockotherapps`, `b_blockremove`, `b_blockforcestop`,`colorbit`, `fps`], where : {id_br : req.headers.userid}})
     .then((branches) => {
         result = {
             bBlockBrower : branches.b_blockbrowser,
@@ -592,26 +594,44 @@ router.get('/pc/settings', (req, res, next) => {
             res.json({resultCode : successResultCode, message : successMessage, settings : result})
         }
     })
-    .catch((err) => {
-        console.log("branches 없음 : ", err.original.detail)
+    .catch(() => {
+        console.log("branches 없음 : ")
     })
 })
 
 router.patch('/pc/settings', (req, res, next) => {
 
-
-    models.branches.findOne({where : {id_br : decrypt(req.headers.userid)}})
-    .then((branches) => {
-            branches.update({colorbit : req.body.settings.colorBit, fps : req.body.settings.ImgFps, b_blockbrowser : req.body.settings.bBlockBrower, b_blockotherapps : req.body.settings.bBlockOtherApps,
-                b_blockremove : req.body.settings.bBlockRemoveApps , b_blockforcestop : req.body.settings.bBlockForceStop})
+    models.managers.findOne({where : {id_user : req.headers.userid},
+    include : [
+        {
+            model : models.branches, 
+            attributes : [`b_blockbrowser`, `b_blockotherapps`, `b_blockremove`, `b_blockforcestop`, `colorbit`, `fps`],
+            where : sequelize.where(
+            sequelize.col('managers.id_br'),
+            sequelize.col('branch.id_br'),
+        )
+        }
+    ]
+    })
+    .then((results) => {
+        console.log(results.id_br);
+            models.branches.update(
+                {
+                    colorbit : req.body.settings.colorBit, fps : req.body.settings.ImgFps, b_blockbrowser : req.body.settings.bBlockBrower, b_blockotherapps : req.body.settings.bBlockOtherApps,
+                b_blockremove : req.body.settings.bBlockRemoveApps , b_blockforcestop : req.body.settings.bBlockForceStop
+                },
+                {
+                    where : {id_br : results.id_br}
+                })
                 .then(() => {
                    res.json({resultCode : successResultCode, message : successMessage})
                 })
-                .catch((err) => {
-                   console.log("branches 최신", err.original.detail)
+                .catch(() => {
+                   console.log("branches 최신")
                 })
     }).catch((err) => {
-        console.log("branches 없음 : ", err.original.detail)
+        console.log("branches 없음 : ", err.original)
+        res.json("Branches Not exist && Error Format")
      })
 })
 // ----------------------------------------------------------------settings
@@ -636,9 +656,10 @@ router.get('/pc/lockscreen', (req, res, next) => {
 })
 
 router.patch('/pc/lockscreen', (req, res, next) => {
+    console.log(req.body);
+    console.log(req.body.modLockscreens.length);
     for(var i = 0; i < req.body.modLockscreens.length ; i++)
     {
-        console.log(decrypt(req.body.modLockscreens[i].stId))
         models.stsettings.update(
         {
             b_lockscreen : req.body.modLockscreens[i].bLockscreen
@@ -772,28 +793,41 @@ router.delete('/pc/members', (req,res,next) => {
 
 router.patch('/pc/members', (req,res,next) => {
     var resultArray = [];
+    var findAllArray = [];
+
+    console.log("Members Patch")
+    console.log("length", req.body.stInfos.length);
     for(var i = 0; i < req.body.stInfos.length; i++){
-        models.students.update({id_st : decrypt(req.body.stInfos[i].stId), name_st : decrypt(req.body.stInfos[i].stName)},{where : {id_st : decrypt(req.body.stInfos[i].stId)}})
-        .catch((err) => {console.log("students 최신", err.original.detail)})
-        models.stsettings.update({id_st : decrypt(req.body.stInfos[i].stId), no_st : req.body.stInfos[i].stNo},{where : {id_st : decrypt(req.body.stInfos[i].stId)}})
-        .catch((err) => {console.log("stsettings 최신", err.original.detail)})
+        models.students.update({name_st : decrypt(req.body.stInfos[i].stName)},{where : {id_st : decrypt(req.body.stInfos[i].stId)}})
+        .then(() => {console.log("students Update")}).catch((err) => {
+            console.log("students 최신", err.original.detail)
+        })
+        models.stsettings.update({no_st : req.body.stInfos[i].stNo},{where : {id_st : decrypt(req.body.stInfos[i].stId)}})
+        .then(() => {console.log("stsettings Update")}).catch((err) => {
+            console.log("stsettings 최신", err.original.detail)
+        })
     }
-    
     setTimeout(() => {
-        models.students.findAll({attributes : [`id_st`, `name_st`]})
+
+        for(var i = 0 ; i <req.body.stInfos.length; i++)
+        {
+            findAllArray.push(decrypt(req.body.stInfos[i].stId))
+        }
+
+        models.students.findAll({attributes : [`id_st`, `name_st`], where: {id_st : { [Op.in] : findAllArray }}})
         .then((students) => {
-            for(var i = 0 ; i <students.length ; i++){
-                console.log(students[i].id_st)
+            for(var j = 0 ; j <students.length ; j++){
+                console.log(students[j].id_st)
                 resultArray.push({
-                    stId : encrypt(students[i].id_st),
-                    stName : encrypt(students[i].name_st)
+                    stId : encrypt(students[j].id_st),
+                    stName : encrypt(students[j].name_st)
                 })
             }
             res.json({resultCode : successResultCode, message : successMessage, stInfos : resultArray})
-            
         })
         .catch(() => {
-            console.log("students Zero", err.original.detail)
+            console.log("students Zero")
+            res.json("students Zero")
         });
     },3000)
 
@@ -829,8 +863,9 @@ router.get('/pc/logs', (req,res,next) => {
         }
         res.json({resultCode : successResultCode, message : successMessage, logs : resultArray});
     })
-    .catch((err) => {
-        console.log("stlogs Zero" , err.original.detail)
+    .catch(() => {
+        console.log("stlogs Zero")
+        res.json("stlogs Zero")
     });
 })
 
@@ -845,4 +880,3 @@ router.get('/pc/dashboard', (req,res,next) => {
 
 // ----------------------------------------------------------------dashboard
 module.exports = router;
-
