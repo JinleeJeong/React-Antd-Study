@@ -1,9 +1,8 @@
-import React, { Component } from 'react';
-import { Layout, Menu, Breadcrumb, Icon, Table, Button, Input, DatePicker, Form, InputNumber, Popconfirm, message} from 'antd';
+import React, { Component, Fragment } from 'react';
+import { Layout, Spin, Menu, Icon, Table, Button, Input, DatePicker, Form, InputNumber, Popconfirm, message} from 'antd';
 import {Link} from 'react-router-dom';
 import Highlighter from 'react-highlight-words';
 import axios from 'axios';
-import Cookies from 'js-cookie';
 import moment from 'moment';
 // -----------------------Layout
 const { Header, Content, Sider } = Layout;
@@ -74,16 +73,15 @@ class ingang extends Component {
       this._isMounted = false;
       this.state = {
         users : [],
-        collapsed: false,
         searchText: '',
         selectedRowKeys : [],
         sortingNumbersNon : [],
         sortingNumbers : [],
         editingKey : '',
+        loading : true,
       }
       
       this.onChange = this.onChange.bind(this);
-      this.delete = this.delete.bind(this);
       this.confirmLogout = this.confirmLogout.bind(this);
       this.cancelLogout = this.cancelLogout.bind(this);
 
@@ -92,7 +90,7 @@ class ingang extends Component {
             title: '앱 이름',
             dataIndex: 'name_app',
             key: 'name_app',
-            width: '40%',
+            width: '33%',
             editable: true,
             ...this.getColumnSearchProps('name_app'),
             sorter: (a,b) => this.compStringReverse(a.name_app, b.name_app),
@@ -103,7 +101,7 @@ class ingang extends Component {
           {
             title: '앱 ID',
             dataIndex: 'id_app',
-            width: '40%',
+            width: '33%',
             editable: true,
             key: 'id_app',
             ...this.getColumnSearchProps('id_app'),
@@ -113,43 +111,12 @@ class ingang extends Component {
               
         // -----------------------------Operation
         {
-          dataIndex: 'operation',
-          render: (text, record) => {
-            const editable = this.isEditing(record);
-            return (
-              <div>
-                {editable ? (
-                  <span>
-                    <EditableContext.Consumer>
-                      
-                      {form => (
-                        <Popconfirm
-                          title="저장하시겠습니까?"
-                          onConfirm={() => this.save(form, record.key)}
-                          okText="확인" cancelText="취소"
-                        >
-                          <a
-                            href="localhost:3000"
-                            style={{ marginRight: 8 , float : "left"}}
-                          >
-                            저장
-                          </a>
-                        </Popconfirm>
-                      )}
-                    </EditableContext.Consumer>
-                    
-                    <div stlye= {{float : "left"}}onClick={() => this.cancel(record.key)} >
-                      취소
-                    </div>
-                  </span>
-                ) 
-                
-                : (
-                  <a href = "localhost:3000" onClick={() => this.edit(record.key)}>편집</a>
-                )}
-              </div>
-            );
-          },
+          title : '총 사용량',
+          dataIndex: 'key',
+          width : '33%',
+          key : 'key',
+          ...this.getColumnSearchProps('key'),
+          sorter: (a, b) => a.key - b.key,
         },
         // -----------------------------Operation
       ];
@@ -226,17 +193,13 @@ class ingang extends Component {
         }
         this.setState({
           users : res.data,
+          loading : false,
         })
     });
   }
   componentWillMount(){
     this._isMounted = false;
   }
-
-    onCollapse = (collapsed) => {
-      console.log(collapsed);
-      this.setState({ collapsed });
-    }
 
 // sorting 
     onChange = (value, dateString) => {
@@ -394,16 +357,19 @@ class ingang extends Component {
       // -------------------table
 
       confirmLogout = (e) =>{
-        axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout')
-              .then(res => console.log(res.data));
-  
-        Cookies.remove('admin');
-        message.success('로그아웃 성공했습니다.');
-  
-        setTimeout(() => {
-          return this.props.history.push('/')
-        }, 1000)
-  
+        var userSession;
+        userSession = {
+          userName : sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+        }
+          axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout', userSession)
+            .then((res) => {
+              console.log(res.data)
+              message.success('로그아웃 성공했습니다.');
+              sessionStorage.removeItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+              setTimeout(() => {
+                return this.props.history.push('/')
+              }, 1000)
+          });
       };
       
       cancelLogout = (e) => {
@@ -420,47 +386,11 @@ class ingang extends Component {
         if(b > a) return 1;
         return 0;
       }
-
-    
-      delete = (e) => {
-        e.preventDefault();
-        const {selectedRowKeys, users} = this.state
-
-        function selectedRowDelete(users){
-          for(let i = 0; i < selectedRowKeys.length ; i++)
-          {
-            if(users.key === selectedRowKeys[i])
-            {
-              return false;
-            }
-          }
-          return true;
-        }
-        var rowArrayDelete = users.filter(selectedRowDelete)
-
-        this.setState({
-          users : rowArrayDelete,
-        })
-
-        var key = []
-        key = selectedRowKeys;
-
-        for(let j = 0 ; j < selectedRowKeys.length ; j++)
-        {
-          axios.delete(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/stlogs/delete/${key[j]}`)
-          .then(res => {
-            console.log(res);
-          })
-          .catch((err) => {
-            console.log(err);
-          })
-        }
-        
-      }
       
       
       render() {
-        const hasSelected = this.state.selectedRowKeys.length > 0;
+        var content;
+
         const components = {
           body: {
             row: EditableFormRow,
@@ -500,24 +430,32 @@ class ingang extends Component {
         
         console.log('users :',  this.state.users);
 
-        return (
-          <Layout style={{ minHeight: '100vh' }}>
-            <Sider
-              collapsible 
-              collapsed={this.state.collapsed}
-              onCollapse={this.onCollapse}
-            >
-              <div className="App-logo" />
-              <Menu theme="dark" defaultSelectedKeys={['6']} mode="inline" style={{maxHeight:"898px"}}>
+        if(this.state.loading) {
 
-                <Menu.Item key = "1" style= {{marginTop: '32%'}}>
-                    <Icon type="pie-chart" /> <span>대시보드</span>
+          content = <div style={{marginTop: "25%", textAlign: "center"}}>
+            <Spin tip="Loading...">
+            </Spin>
+        </div>
+
+        }
+        else {
+          content =
+          <Fragment>
+          <Layout style={{ minHeight: '100vh' }}>
+          <Sider>
+              <div className="App-logo" />
+              <Menu theme="dark" defaultSelectedKeys={['6']} mode="inline" style={{height:"100%"}}>
+
+              <Menu.Item key = "9" style= {{backgroundColor : "#28948D", margin : 0, height : "53px"}}>
+              </Menu.Item>
+                <Menu.Item key = "1" style= {{marginTop : 0, paddingTop : "12px", height : "57px"}}>
+                    <Icon type="pie-chart" /><span style={{fontColor : "white"}}>대시보드</span>
                     <Link to = {`/main`}/>  
                 </Menu.Item>  
-
                 <SubMenu
-                  key="sub1"
-                  title={<span><Icon type="team" /><span>설정</span></span>}
+                  key="sub2"
+                  style={{marginTop : "13px"}}
+                  title={<span><Icon type="setting" /><span style={{fontColor : "white"}}>설정</span></span>}
                 >
                   <Menu.Item key="2"><Link to = {`/prohibition`}/>사용금지 목록</Menu.Item>
                   <Menu.Item key="3"><Link to = {`/settingIngang`}/>타 인강 목록</Menu.Item>
@@ -525,20 +463,21 @@ class ingang extends Component {
                 </SubMenu>
 
                 <SubMenu
-                  key="sub2"
-                  title={<span><Icon type="user" /><span>조회</span></span>}
+                  
+                  key="sub1"
+                  title={<span><Icon type="file-search" /><span>조회</span></span>}
+                  style={{marginTop : "13px"}}
                 >
                   <Menu.Item key="5"><Link to = {`/app`}/>앱별 사용이력</Menu.Item>
                   <Menu.Item key="6"><Link to = {`/ingang`}/>인강별 사용이력</Menu.Item>
                   <Menu.Item key="7"><Link to = {`/student`}/>학생별 사용이력</Menu.Item>
                 </SubMenu>
 
-                  <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
-                    
+                <Menu.Item key = "8" onClick={this.logout} style={{position:"relative", top:"71.5%", marginBottom: 0}}>
+                    <Icon type="logout"/>
                     
                     <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
-                        <Icon type="logout"/>
-                        <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
+                        <span>로그아웃</span> 
                         <Link to = {`/`}/>                  
                     </Popconfirm>
 
@@ -548,27 +487,28 @@ class ingang extends Component {
 
 
             <Layout>
-              <Header style={{ background: '#1DA57A', padding: 0 }} >
-                <Breadcrumb style={{ margin: '12px 0'}}>
-                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "4vh", fontWeight :"bolder", fontSize : "3.2vh"}}>인강별 사용이력</h1></Breadcrumb.Item>
-                </Breadcrumb>
+              <Header style={{ background: '#28948D', padding: 0, height : "52px" }} >
               </Header>
 
 
-              <Content style={{ margin: '5vh 30px 30px 30px' }}>
+              <Content style={{}}>
+              <div style={{fontWeight : "600", fontSize : "2.5vh", height : 50, marginTop : 38, marginLeft : 38}}>
+                인강별 사용이력 조회
+              </div>
+
+                <div style={{ margin: '0 38px 0 38px', padding: "35px 48px 48px 48px", background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
+                
                 <div>
-                  
                   <RangePicker
                     showTime={{ format: 'HH:mm' }}
                     format="YYYY-MM-DD HH:mm"
                     placeholder={['날짜 선택', '날짜 선택']}
                     onChange={this.onChangePicker}
                     onOk={this.onOk}
-                    style={{margin : '1% 0 1% 0'}}
+                    style={{margin : '0 0 1% 0'}}
                   />
                 </div>
 
-                <div style={{ padding: 11, background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
                 <Table
                     components={components}
                     bordered
@@ -583,12 +523,15 @@ class ingang extends Component {
                      rowkey={record => record.uid}
                   />
                 </div>
-                <div style={{float:"right"}}>
-                  <Button type="danger" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
-                </div>
               </Content>
             </Layout>
           </Layout>
+          </Fragment>
+        }
+        return (
+          <div>
+            {content}
+          </div>
     
         );
       }

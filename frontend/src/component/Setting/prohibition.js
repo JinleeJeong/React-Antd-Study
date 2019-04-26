@@ -1,9 +1,8 @@
-import React, { Component } from 'react';
-import { Layout, Menu, Breadcrumb, Icon, Table, Button, Input, Form, InputNumber, Popconfirm, message} from 'antd';
+import React, { Component, Fragment } from 'react';
+import { Layout, Menu, Icon, Table, Button, Input, Form, InputNumber, Popconfirm, message, Spin} from 'antd';
 import {Link} from 'react-router-dom';
 import axios from 'axios'
 import Highlighter from 'react-highlight-words';
-import Cookies from 'js-cookie'
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
 
@@ -74,13 +73,13 @@ class prohibition extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            collapsed: false,
             selectedRowKeys : [],
             selectedRowKeysFalse : [],
             searchText: '',
             editingKey : '',
             appTrue : [],
             appFalse : [],
+            loading : true,
           }
         this.delete = this.delete.bind(this);
         this.confirmLogout = this.confirmLogout.bind(this);
@@ -95,10 +94,10 @@ class prohibition extends Component {
         // ======================================================================================== Left - True 테이블 
         this.columnsFalse = [
           {
-            title: '이름',
+            title: '앱 이름',
             dataIndex: 'name_app',
             key: 'name_app',
-            width: '35%',
+            width: '40%',
             editable: true,
             ...this.getColumnSearchProps('name_app'),
             sorter: (a,b) => this.compStringReverse(a.name_app, b.name_app),
@@ -107,9 +106,9 @@ class prohibition extends Component {
           }, 
           
           {
-            title: '앱 번호',
+            title: '앱 ID',
             dataIndex: 'id_app',
-            width: '35%',
+            width: '40%',
             editable: true,
             key: 'id_app',
             ...this.getColumnSearchProps('id_app'),
@@ -117,8 +116,9 @@ class prohibition extends Component {
           },            
         // -----------------------------Operation
         {
+          title: '수정',
           dataIndex: 'operation',
-          width: '25%',
+          width: '15%',
           render: (text, record) => {
             const editable = this.isEditing(record);
             return (
@@ -163,10 +163,10 @@ class prohibition extends Component {
         
         this.columns = [
           {
-          title: '이름',
+          title: '앱 이름',
           dataIndex: 'name_app',
           key: 'name_app',
-          width: '35%',
+          width: '40%',
           editable: true,
           sorter: (a,b) => this.compStringReverse(a.name_app, b.name_app),
           defaultSortOrder: 'descend',
@@ -174,9 +174,9 @@ class prohibition extends Component {
           }, 
       
           {
-          title: '앱 번호',
+          title: '앱 ID',
           dataIndex: 'id_app',
-          width: '35%',
+          width: '40%',
           editable: true,
           key: 'id_app',
           ...this.getColumnSearchProps('id_app'),
@@ -186,7 +186,7 @@ class prohibition extends Component {
           {
               title: '수정',
               dataIndex: 'operation',
-              width: '25%',
+              width: '15%',
               render: (text, record) => {
                   const editable = this.isEditing(record);
                   return (
@@ -261,8 +261,8 @@ class prohibition extends Component {
             }
   
             console.log(updateobj);
-            axios.put(`http://localhost:8080/api/sp/disableapps/${key}`, updateobj)
-            .then(res => console.log(res));
+            axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/disableapps/${key}`, updateobj)
+            .then(res => console.log("수정 완료"));
             message.success("수정 완료")
           }
           else {
@@ -301,8 +301,8 @@ class prohibition extends Component {
             }
 
             console.log(updateobj);
-            axios.put(`http://localhost:8080/api/sp/disableapps/${key}`, updateobj)
-            .then(res => console.log(res));
+            axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/disableapps/${key}`, updateobj)
+            .then(res => console.log("수정 완료"));
             message.success("수정 완료")
         }
         else {
@@ -320,37 +320,30 @@ class prohibition extends Component {
     
     componentDidMount(){
       
-        axios.get('http://localhost:8080/api/sp/disableapps')
+        axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/disableapps')
         .then(res => {
-          for ( let i = 0 ; i < res.data.length ; i++){
-            res.data[i].key = res.data[i]['idx'];
-            delete res.data[i].idx;
+          for ( let i = 0 ; i < res.data.disableApps.length ; i++){
+            res.data.disableApps[i].key = res.data.disableApps[i]['idx'];
+            delete res.data.disableApps[i].idx;
             }
           this.setState({
-            appFalse : res.data
+            appFalse : res.data.disableApps
           })
         });
         
-        axios.get('http://localhost:8080/api/sp/ableapps')
+        axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/ableapps')
         .then(res => {
-          for ( let i = 0 ; i < res.data.length ; i++){
-            res.data[i].key = res.data[i]['idx'];
-            delete res.data[i].idx;
+          for ( let i = 0 ; i < res.data.ableApps.length ; i++){
+            res.data.ableApps[i].key = res.data.ableApps[i]['idx'];
+            delete res.data.ableApps[i].idx;
           }
           this.setState({
-            appTrue : res.data
+            appTrue : res.data.ableApps,
+            loading : false
           })
         });
     }
   
-
-    // 슬라이드 바 True & False
-    onCollapse = (collapsed) => {
-        console.log(collapsed);
-        this.setState({ collapsed });
-    }
-      
-
     // Search in Table
       getColumnSearchProps = (dataIndex) => ({
         filterDropdown: ({
@@ -427,16 +420,19 @@ class prohibition extends Component {
     // ============================= 로그아웃 
 
     confirmLogout = (e) =>{
-      axios.get('http://localhost:8080/api/sp/logout')
-            .then(res => console.log(res.data));
-
-      Cookies.remove('admin');
-      message.success('로그아웃 성공했습니다.');
-
-      setTimeout(() => {
-        return this.props.history.push('/')
-      }, 1000)
-
+      var userSession;
+      userSession = {
+        userName : sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+      }
+        axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout', userSession)
+          .then((res) => {
+            console.log(res.data)
+            message.success('로그아웃 성공했습니다.');
+            sessionStorage.removeItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+            setTimeout(() => {
+              return this.props.history.push('/')
+            }, 1000)
+        });
     };
     
     cancelLogout = (e) => {
@@ -479,7 +475,7 @@ class prohibition extends Component {
     
             for(let j = 0 ; j < selectedRowKeysFalse.length ; j++)
             {
-              axios.delete(`http://localhost:8080/api/sp/delete/${key[j]}`)
+              axios.delete(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/delete/${key[j]}`)
               .then(res => {
                 console.log(res);
               })
@@ -550,7 +546,7 @@ class prohibition extends Component {
         })
 
         for(let i = 0 ; i < selectedRowKeys.length ; i++){
-            axios.put(`http://localhost:8080/api/sp/update/right/${key[i]}`)
+            axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/update/right/${key[i]}`)
             .then(res => console.log(res.data));
         }
     }
@@ -573,7 +569,7 @@ class prohibition extends Component {
         })
 
         for(let i = 0 ; i < selectedRowKeysFalse.length ; i++){
-            axios.put(`http://localhost:8080/api/sp/update/left/${key[i]}`)
+            axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/update/left/${key[i]}`)
             .then(res => console.log(res));
         }
     }
@@ -594,7 +590,7 @@ class prohibition extends Component {
             
             console.log(insertObj);
 
-            axios.post(`http://localhost:8080/api/sp/disableapps/insert`, insertObj)
+            axios.post(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/disableapps/insert`, insertObj)
             .then(res => {
               res.data.key = res.data.idx;
               delete res.data.idx;
@@ -614,6 +610,9 @@ class prohibition extends Component {
     }
 
     render() {
+      var content;
+      
+
       const {
         getFieldDecorator, getFieldError, isFieldTouched,
           } = this.props.form;
@@ -699,24 +698,34 @@ class prohibition extends Component {
         console.log(this.state.appTrue);
         console.log(this.state.appFalse);    
 
-        return (
-            <Layout style={{ minHeight: '100vh' }}>
-            <Sider
-              collapsible 
-              collapsed={this.state.collapsed}
-              onCollapse={this.onCollapse}
-            >
-              <div className="id_app-logo" />
-              <Menu theme="dark" defaultSelectedKeys={['2']} mode="inline" style={{maxHeight:"898px"}}>
 
-                <Menu.Item key = "1" style= {{marginTop: '32%'}}>
-                    <Icon type="pie-chart" /> <span>대시보드</span>
+        if(this.state.loading) {
+
+          content = <div style={{marginTop: "25%", textAlign: "center"}}>
+            <Spin tip="Loading...">
+            </Spin>
+        </div>
+
+        }
+        else
+        {
+          content = 
+          <Fragment>
+          <Layout style={{ minHeight: '100vh' }}>
+          <Sider>
+              <div className="App-logo" />
+              <Menu theme="dark" defaultSelectedKeys={['2']} mode="inline" style={{height:"100%"}}>
+
+              <Menu.Item key = "9" style= {{backgroundColor : "#28948D", margin : 0, height : "53px"}}>
+              </Menu.Item>
+                <Menu.Item key = "1" style= {{marginTop : 0, paddingTop : "12px", height : "57px"}}>
+                    <Icon type="pie-chart" /><span style={{fontColor : "white"}}>대시보드</span>
                     <Link to = {`/main`}/>  
                 </Menu.Item>  
-
                 <SubMenu
-                  key="sub1"
-                  title={<span><Icon type="team" /><span>설정</span></span>}
+                  key="sub2"
+                  style={{marginTop : "13px"}}
+                  title={<span><Icon type="setting" /><span style={{fontColor : "white"}}>설정</span></span>}
                 >
                   <Menu.Item key="2"><Link to = {`/prohibition`}/>사용금지 목록</Menu.Item>
                   <Menu.Item key="3"><Link to = {`/settingIngang`}/>타 인강 목록</Menu.Item>
@@ -724,138 +733,145 @@ class prohibition extends Component {
                 </SubMenu>
 
                 <SubMenu
-                  key="sub2"
-                  title={<span><Icon type="user" /><span>조회</span></span>}
+                  
+                  key="sub1"
+                  title={<span><Icon type="file-search" /><span>조회</span></span>}
+                  style={{marginTop : "13px"}}
                 >
                   <Menu.Item key="5"><Link to = {`/app`}/>앱별 사용이력</Menu.Item>
                   <Menu.Item key="6"><Link to = {`/ingang`}/>인강별 사용이력</Menu.Item>
                   <Menu.Item key="7"><Link to = {`/student`}/>학생별 사용이력</Menu.Item>
                 </SubMenu>
 
-                  <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
-                    
+                <Menu.Item key = "8" onClick={this.logout} style={{position:"relative", top:"71.5%", marginBottom: 0}}>
+                    <Icon type="logout"/>
                     
                     <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
-                        <Icon type="logout"/>
-                        <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
+                        <span>로그아웃</span> 
                         <Link to = {`/`}/>                  
                     </Popconfirm>
 
                   </Menu.Item>
               </Menu>
             </Sider>
-
-
-            <Layout>
-              <Header style={{ background: '#1DA57A', padding: 0 }} >
-                <Breadcrumb style={{ margin: '12px 0'}}>
-                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "4vh", fontWeight :"bolder", fontSize : "3.2vh"}}>사용금지 목록</h1></Breadcrumb.Item>
-                </Breadcrumb>
-              </Header>
-
-
-              <Content style={{ margin: '10vh 30px 0vh 30px'}}>
-
-              <div style={{ padding: 11, background: '#fff', minHeight: 360, marginBottom: '1%' ,marginLeft: "5%", float : "left", width: "40%"}}>
-              <div style={{textAlign : "center", marginBottom:"1.5vh",marginTop : "1vh", fontWeight : "600", fontSize : "2vh"}}> 사용 가능 목록 </div>
-            
-            
-                <Table
-                    components={components}
-                    bordered
-                    dataSource={this.state.appTrue}
-                    columns={columns}
-                    rowSelection={rowSelection}
-                    rowClassName="editable-row"
-                    pagination={{
-                      onChange: this.cancel,
-                    }}
-                    onChange = {this.onChange}
-                     rowkey={record => record.uid}
-                  />
-            </div>
+  
+  
+              <Layout>
+                <Header style={{ background: '#28948D', padding: 0, height : "52px" }} >
+                </Header>
+  
+  
+                <Content style={{}}>
+                <div style={{height: 62, marginTop : 38, marginLeft : 38}}>
+                  <div style={{float: "left", fontWeight : "600", fontSize : "2.5vh", width : "53%", paddingTop : 0}}>
+                  사용 가능 목록
+                  </div>
+                  <div style={{fontWeight : "600", fontSize : "2.5vh", paddingTop : 0}}>
+                  사용 금지 목록
+                  </div>
+                </div>
+                <div style={{ margin: '0 0 0 38px', padding: 48, background: '#fff', minHeight: 360, marginBottom: '1%' ,marginLeft: 38, float : "left", width: "44%"}}>
+                  <Table
+                      components={components}
+                      bordered
+                      dataSource={this.state.appTrue}
+                      columns={columns}
+                      rowSelection={rowSelection}
+                      rowClassName="editable-row"
+                      pagination={{
+                        onChange: this.cancel,
+                      }}
+                      onChange = {this.onChange}
+                       rowkey={record => record.uid}
+                    />
+              </div>
+                
               
-            
-            <div style = {{ margin : "20vh 0 0 4vh", float: "left"}}>
-                
-                <div>
-                <Button type="primary" style={{width : "5.3vh", marginBottom : "3vh"}} onClick ={this.rightButton} disabled={!hasSelected}>
-                    <Icon type="right" />
-                </Button>
-                </div>
-                <div>
-                    <Button type="primary" style={{width : "5.3vh"}} onClick ={this.leftButton} disabled={!hasSelectedFalse}>
-                        <Icon type="left" />
+              <div style = {{ margin : "25vh 0 0 4vh", float: "left"}}>
+                  
+                  <div>
+                    <Button type="primary" style={{width : "5.3vh", marginBottom : "3vh"}} onClick ={this.rightButton} disabled={!hasSelected}>
+                        <Icon type="right" />
                     </Button>
-                </div>
-                
-                
-            </div>
-
-            <div style={{ padding: 11, background: '#fff', minHeight: 360, marginBottom: '1%', float : "left", clear : "none", width: "40%", marginLeft : "4vh"}}>
-            <div style={{textAlign : "left"}}>
-              <Button type="danger" onClick = {this.delete} disabled={!hasSelectedFalse} style ={{float: "left", marginBottom : "1vh", marginTop : "-0.5vh"}}>삭제</Button> 
-              <div style={{textAlign : "center",marginRight : "7vh",  fontWeight : "600", fontSize : "2vh", marginTop : "1vh"}}>
-              사용 금지 목록
-              </div></div>
-              <Table
-                    components={components}
-                    bordered
-                    dataSource={this.state.appFalse}
-                    columns={columnsFalse}
-                    rowSelection={rowSelectionFalse}
-                    rowClassName="editable-row"
-                    pagination={{
-                      onChange: this.cancel,
-                    }}
-                    onChange = {this.onChange}
-                     rowkey={record => record.uid}
-                  />
-              <Form layout="inline" style={{marginLeft: "10%", display: "flex"}}>
-                  <Form.Item
-                  {...formItemLayout}
-                    validateStatus={appNameError ? 'error' : ''}
-                    help={appNameError || ''}
-                    style={{width : "37%", marginRight:"0"}}
-                    
-                  ><div>
-                    {getFieldDecorator('name_app', {
-                      rules: [{ required: true, message: '앱 이름을 입력하세요.' }],
-                    })(
-                      <Input placeholder="입력" />
-                    )}
-                    </div>
-                  </Form.Item>
-                  <Form.Item
-                  {...formItemLayout}
-                    validateStatus={appIdError ? 'error' : ''}
-                    help={appIdError || ''}
-                    style={{width : "37%", marginRight:"0"}}
-                  ><div>
-                    {getFieldDecorator('id_app', {
-                      rules: [{ required: true, message: '앱 번호를 입력하세요.' }],
-                    })(
-                      <Input placeholder="입력" />
-                    )}</div>
-                  </Form.Item>
-                  <Form.Item style={{float: "right"}}
-                  {...formItemLayout}>
-                      <Popconfirm title = "추가하시겠습니까?" onConfirm={this.handleSubmit} onCancel={() => {console.log("취소")}} okText="확인" cancelText="취소">
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                      >
-                        추가
+                  </div>
+                  <div>
+                      <Button type="primary" style={{width : "5.3vh"}} onClick ={this.leftButton} disabled={!hasSelectedFalse}>
+                          <Icon type="left" />
                       </Button>
-                      </Popconfirm>
-                  </Form.Item>
-                </Form>
+                  </div>
+                  
+                  
+              </div>
+  
+              <div style={{ margin: '0 0 0 38px', padding: 48, background: '#fff', minHeight: 360, marginBottom: '1%', float : "left", clear : "none", width: "44%", marginLeft : "4vh"}}>
+              <div style={{textAlign : "left"}}> 
+              </div>
+                <Table
+                      components={components}
+                      bordered
+                      dataSource={this.state.appFalse}
+                      columns={columnsFalse}
+                      rowSelection={rowSelectionFalse}
+                      rowClassName="editable-row"
+                      pagination={{
+                        onChange: this.cancel,
+                      }}
+                      onChange = {this.onChange}
+                       rowkey={record => record.uid}
+                    />
+                <Button type="danger" onClick = {this.delete} disabled={!hasSelectedFalse} style ={{float: "left", marginTop : 14, marginRight : 5}}><Icon type="delete"></Icon></Button>
+                <Form layout="inline" style={{display: "flex", marginTop : 10}}>
+                    <Form.Item
+                    {...formItemLayout}
+                      validateStatus={appNameError ? 'error' : ''}
+                      help={appNameError || ''}
+                      style={{width : "43%", marginRight:"0"}}
+                      
+                    ><div>
+                      {getFieldDecorator('name_app', {
+                        rules: [{ required: true, message: '앱 이름을 입력하세요.' }],
+                      })(
+                        <Input placeholder="입력" />
+                      )}
+                      </div>
+                    </Form.Item>
 
-            </div>
-
-              </Content>
+                    <Form.Item
+                    {...formItemLayout}
+                      validateStatus={appIdError ? 'error' : ''}
+                      help={appIdError || ''}
+                      style={{width : "43%", marginRight:"0"}}
+                    ><div>
+                      {getFieldDecorator('id_app', {
+                        rules: [{ required: true, message: '앱 번호를 입력하세요.' }],
+                      })(
+                        <Input placeholder="입력" />
+                      )}</div>
+                    </Form.Item>
+                    <Form.Item style={{float: "right"}}
+                    {...formItemLayout}>
+                        <Popconfirm title = "추가하시겠습니까?" onConfirm={this.handleSubmit} onCancel={() => {console.log("취소")}} okText="확인" cancelText="취소">
+                        <Button
+                          type="primary"
+                          htmlType="submit"
+                        >
+                          추가
+                        </Button>
+                        </Popconfirm>
+                    </Form.Item>
+                  </Form>
+  
+              </div>
+                </Content>
+              </Layout>
             </Layout>
-          </Layout>
+            </Fragment>
+        }
+        
+        return (
+          <div>
+            {content}
+          </div>
         );
     }
 }

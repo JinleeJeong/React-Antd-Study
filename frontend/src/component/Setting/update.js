@@ -1,9 +1,8 @@
-import React, { Component } from 'react';
-import { Layout, Menu, Breadcrumb, Icon, Table, Button, Input, Form, InputNumber, Popconfirm, message} from 'antd';
+import React, { Component, Fragment } from 'react';
+import { Layout, Menu, Icon, Table, Button, Input, Form, InputNumber, Popconfirm, message, Spin} from 'antd';
 import {Link} from 'react-router-dom';
 import Highlighter from 'react-highlight-words';
 import axios from 'axios'
-import Cookies from 'js-cookie'
 // -----------------------Layout
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
@@ -13,6 +12,10 @@ const {SubMenu} = Menu;
 const FormItem = Form.Item;
 const EditableContext = React.createContext();
 
+const formItemLayout = {
+  labelCol: { span: 1 },
+  wrapperCol: { span: 23 },
+};
 
 const EditableRow = ({ form, index, ...props }) => (
   <EditableContext.Provider value={form}>
@@ -74,13 +77,12 @@ class update extends Component {
 
       this.state = {
         users : [],
-        collapsed: false,
         searchText: '',
         selectedRowKeys : [],
         sortingNumbersNon : [],
         sortingNumbers : [],
         editingKey : '',
-        
+        loading : true,
       }
       
       this.onChange = this.onChange.bind(this);
@@ -93,7 +95,7 @@ class update extends Component {
             title: '버전',
             dataIndex: 'version',
             key: 'version',
-            width: '17%',
+            width: '17.3%',
             editable: true,
             ...this.getColumnSearchProps('version'),
             sorter: (a,b) => this.compStringReverse(a.version, b.version),
@@ -104,7 +106,7 @@ class update extends Component {
           {
             title: '타입',
             dataIndex: 'type',
-            width: '19%',
+            width: '17.3%',
             editable: true,
             key: 'type',
             ...this.getColumnSearchProps('type'),
@@ -114,7 +116,7 @@ class update extends Component {
           {
             title: 'URL',
             dataIndex: 'url',
-            width: '50%',
+            width: '51.9%',
             editable: true,
             key: 'url',
             ...this.getColumnSearchProps('url'),
@@ -122,7 +124,9 @@ class update extends Component {
           }, 
         // -----------------------------Operation
         {
+          title:  '수정',
           dataIndex: 'operation',
+          width: '15%',
           render: (text, record) => {
             const editable = this.isEditing(record);
             return (
@@ -194,7 +198,7 @@ class update extends Component {
           }
 
           console.log(updateobj);
-          axios.put(`http://localhost:8080/api/sp/appverinfos/update/${key}`, updateobj)
+          axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/appverinfos/update/${key}`, updateobj)
           .then(res => console.log(res));
         }
         else {
@@ -211,7 +215,7 @@ class update extends Component {
     }
     // ---------------------------------Edit Result or Change State
     componentDidMount(){
-      axios.get('http://localhost:8080/api/sp/appverinfos')
+      axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/appverinfos')
       .then(res => {
         for ( let i = 0 ; i < res.data.length ; i++){
           res.data[i].key = res.data[i]['idx'];
@@ -220,14 +224,10 @@ class update extends Component {
         }
         this.setState({
           users : res.data,
+          loading : false,
       })
     });
   }
-
-    onCollapse = (collapsed) => {
-      console.log(collapsed);
-      this.setState({ collapsed });
-    }
 
   // sorting 
     onChange = (value, dateString) => {
@@ -306,18 +306,21 @@ class update extends Component {
 
        // ============================= 로그아웃 
 
-    confirmLogout = (e) =>{
-      axios.get('http://localhost:8080/api/sp/logout')
-            .then(res => console.log(res.data));
-
-      Cookies.remove('admin');
-      message.success('로그아웃 성공했습니다.');
-
-      setTimeout(() => {
-        return this.props.history.push('/')
-      }, 1000)
-
-    };
+       confirmLogout = (e) =>{
+        var userSession;
+        userSession = {
+          userName : sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+        }
+          axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout', userSession)
+            .then((res) => {
+              console.log(res.data)
+              message.success('로그아웃 성공했습니다.');
+              sessionStorage.removeItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+              setTimeout(() => {
+                return this.props.history.push('/')
+              }, 1000)
+          });
+      };
     
     cancelLogout = (e) => {
       message.error('로그아웃 취소');
@@ -360,7 +363,7 @@ class update extends Component {
 
         for(let j = 0 ; j < selectedRowKeys.length ; j++)
         {
-          axios.delete(`http://localhost:8080/api/sp/appverinfos/delete/${key[j]}`)
+          axios.delete(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/appverinfos/delete/${key[j]}`)
           .then(res => {
             console.log(res);
           })
@@ -388,7 +391,7 @@ class update extends Component {
               
               console.log(insertObj);
 
-              axios.post(`http://localhost:8080/api/sp/appverinfos/insert`, insertObj)
+              axios.post(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/appverinfos/insert`, insertObj)
               .then(res => {
                 res.data.key = res.data.idx;
                 delete res.data.idx;
@@ -416,6 +419,9 @@ class update extends Component {
 
 
       render() {
+        var content;
+        
+
         const {
           getFieldDecorator, getFieldError, isFieldTouched,
         } = this.props.form;
@@ -443,35 +449,35 @@ class update extends Component {
             }),
           };
         });
-        // const rowSelections = {
-        //   onChange: (selectedRowKeys, selectedRows) => {
-        //     this.setState({
-        //       selectedRowKeys : selectedRowKeys
-        //     }, () => {
-        //       console.log(this.state.selectedRowKeys);
-        //     })
-        //   } 
-        // };
         const hasSelected = this.state.selectedRowKeys.length > 0;  
         console.log(this.state.users);
-        return (
-          <Layout style={{ minHeight: '100vh' }}>
-            <Sider
-              collapsible 
-              collapsed={this.state.collapsed}
-              onCollapse={this.onCollapse}
-            >
-              <div className="App-logo" />
-              <Menu theme="dark" defaultSelectedKeys={['4']} mode="inline" style={{maxHeight:"898px"}}>
 
-                <Menu.Item key = "1" style= {{marginTop: '32%'}}>
-                    <Icon type="pie-chart" /> <span>대시보드</span>
+        if(this.state.loading) {
+
+          content = <div style={{marginTop: "25%", textAlign: "center"}}>
+            <Spin tip="Loading...">
+            </Spin>
+        </div>
+
+        }
+        else {
+        content =
+        <Fragment> 
+          <Layout style={{ minHeight: '100vh' }}>
+          <Sider>
+              <div className="App-logo" />
+              <Menu theme="dark" defaultSelectedKeys={['4']} mode="inline" style={{height:"100%"}}>
+
+              <Menu.Item key = "9" style= {{backgroundColor : "#28948D", margin : 0, height : "53px"}}>
+              </Menu.Item>
+                <Menu.Item key = "1" style= {{marginTop : 0, paddingTop : "12px", height : "57px"}}>
+                    <Icon type="pie-chart" /><span style={{fontColor : "white"}}>대시보드</span>
                     <Link to = {`/main`}/>  
                 </Menu.Item>  
-
                 <SubMenu
-                  key="sub1"
-                  title={<span><Icon type="team" /><span>설정</span></span>}
+                  key="sub2"
+                  style={{marginTop : "13px"}}
+                  title={<span><Icon type="setting" /><span style={{fontColor : "white"}}>설정</span></span>}
                 >
                   <Menu.Item key="2"><Link to = {`/prohibition`}/>사용금지 목록</Menu.Item>
                   <Menu.Item key="3"><Link to = {`/settingIngang`}/>타 인강 목록</Menu.Item>
@@ -479,20 +485,21 @@ class update extends Component {
                 </SubMenu>
 
                 <SubMenu
-                  key="sub2"
-                  title={<span><Icon type="user" /><span>조회</span></span>}
+                  
+                  key="sub1"
+                  title={<span><Icon type="file-search" /><span>조회</span></span>}
+                  style={{marginTop : "13px"}}
                 >
                   <Menu.Item key="5"><Link to = {`/app`}/>앱별 사용이력</Menu.Item>
                   <Menu.Item key="6"><Link to = {`/ingang`}/>인강별 사용이력</Menu.Item>
                   <Menu.Item key="7"><Link to = {`/student`}/>학생별 사용이력</Menu.Item>
                 </SubMenu>
 
-                  <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
-                    
+                <Menu.Item key = "8" onClick={this.logout} style={{position:"relative", top:"71.5%", marginBottom: 0}}>
+                    <Icon type="logout"/>
                     
                     <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
-                        <Icon type="logout"/>
-                        <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
+                        <span>로그아웃</span> 
                         <Link to = {`/`}/>                  
                     </Popconfirm>
 
@@ -502,36 +509,27 @@ class update extends Component {
 
 
             <Layout>
-              <Header style={{ background: '#1DA57A', padding: 0 }} >
-                <Breadcrumb style={{ margin: '12px 0'}}>
-                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "4vh", fontWeight :"bolder", fontSize : "3.2vh"}}>앱 업데이트</h1></Breadcrumb.Item>
-                </Breadcrumb>
+              <Header style={{ background: '#28948D', padding: 0, height : "52px" }} >
               </Header>
 
-              <Content style={{ margin: '5vh 30px 30px 30px' }}>
-                
-                <div style={{ padding: 11, background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
+              <Content style={{}}>
+                <div style={{fontWeight : "600", fontSize : "2.5vh", height : 50, marginTop : 38, marginLeft : 38}}>
+                  앱 업데이트
+                </div>
+                <div style={{  margin: '0 38px 0 38px',padding: 48, background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
+
                 <div style={{float:"left"}}>
-                  <Button style={{}} type="danger" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
-                </div>
-                <div style={{float:"left", marginLeft: "1vh"}}>
-                <Popconfirm title = "활성화하시겠습니까?" onConfirm={this.activateSubmit} onCancel={() => {console.log("취소")}} okText="확인" cancelText="취소">
-                  <Button style={{}} type="primary" disabled={!hasSelected}>활성화</Button>
-                </Popconfirm>
-                </div>
-                <div style={{marginRight : "20vh",textAlign : "center", marginBottom:"1.5vh", fontWeight : "600", fontSize : "2vh", marginTop : "1vh"}}>
-                앱 업데이트
+                
                 </div>
                 <Table
                     rowSelection={{type :'radio', 
                     columnTitle : "활성화",
-                    columnWidth : "7%",
+                    columnWidth : "5%",
                     onChange: (selectedRowKeys, selectedRows) => {
                       this.setState({
                         selectedRowKeys : selectedRowKeys
                       }, () => {
                         console.log(this.state.selectedRowKeys);
-                        
                       })
                     // return (
                     //     <Popconfirm 
@@ -552,44 +550,45 @@ class update extends Component {
                     onChange = {this.onChange}
                      rowkey={record => record.uid}
                   />
-
-                <Form layout="inline" style={{marginLeft: "7%", display : "flex", spaceBetween : "10px"}}>
+                <Button type="danger" onClick = {this.delete} disabled={!hasSelected} style ={{float: "left", marginTop : 14, marginRight : 5, width:"8vh"}}><Icon type="delete"></Icon></Button>
+                <Form layout="inline" style={{display : "flex", marginTop : 10}}>
                   <Form.Item
-                  
+                    {...formItemLayout}
                     validateStatus={appNameError ? 'error' : ''}
                     help={appNameError || ''}
-                    style={{flex: "1"}}
+                    style={{width : "18.5%", marginRight:0}}
                     
                   ><div>
                     {getFieldDecorator('version', {
                       rules: [{ required: true, message: '앱 버전을 입력하세요.' }],
                     })(
-                      <Input  placeholder="신규 버전 입력" />
+                      <Input placeholder="신규 버전 입력" />
                     )}
                     </div>
                   </Form.Item>
                   <Form.Item
-                  
+                    {...formItemLayout}
                     validateStatus={appIdError ? 'error' : ''}
                     help={appIdError || ''}
-                    style={{flex: "1"}}
+                    style={{width : "18.5%", marginRight :0, marginLeft : -5}}
                   ><div>
                     {getFieldDecorator('type', {
                       rules: [{ required: true, message: '앱 타입를 입력하세요.' }],
                     })(
-                      <Input  placeholder="타입 입력" />
+                      <Input placeholder="타입 입력" />
                     )}</div>
                   </Form.Item>
                   <Form.Item
+                  {...formItemLayout}
                     validateStatus={appIdError ? 'error' : ''}
                     help={appIdError || ''}
-                    style={{flex: "3", display: "block"}}
+                    style={{width : "57%", marginRight :0, marginLeft : -5}}
                     
                   ><div>
                     {getFieldDecorator('url', {
                       rules: [{ required: true, message: 'URL을 입력하세요.' }],
                     })(
-                      <Input style={{width:"75vh"}} placeholder="URL 입력" />
+                      <Input placeholder="URL 입력" />
                     )}</div>
                   </Form.Item>
                   <Form.Item style={{float: "right"}}
@@ -598,17 +597,26 @@ class update extends Component {
                       <Button
                         type="primary"
                         htmlType="submit"
+                        style={{marginLeft : -25}}
                       >
                         추가
                       </Button>
                       </Popconfirm>
                   </Form.Item>
                 </Form>
+                <Popconfirm title = "활성화하시겠습니까?" onConfirm={this.activateSubmit} onCancel={() => {console.log("취소")}} okText="확인" cancelText="취소">
+                  <Button style={{width:"11vh", marginTop : 5}} type="primary" disabled={!hasSelected}>활성화</Button>
+                </Popconfirm>
                 </div>
               </Content>
             </Layout>
-          </Layout>
-    
+          </Layout>        
+        </Fragment>
+        }
+        return (
+          <div>
+            {content}
+          </div>
         );
       }
   }

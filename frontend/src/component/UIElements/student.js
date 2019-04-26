@@ -1,10 +1,9 @@
-import React, { Component } from 'react';
-import { Layout, Menu, Breadcrumb, Icon, Table, Button, Input, DatePicker, Form, InputNumber, Popconfirm, message} from 'antd';
+import React, { Component, Fragment } from 'react';
+import { Layout, Menu, Icon, Table, Button, Input, DatePicker, Form, InputNumber, Popconfirm, message, Spin} from 'antd';
 import {Link} from 'react-router-dom';
 import Highlighter from 'react-highlight-words';
 import moment from 'moment';
 import axios from 'axios';
-import Cookies from 'js-cookie';
 
 // -----------------------Layout
 const { Header, Content, Sider } = Layout;
@@ -74,7 +73,6 @@ class student extends Component {
 
       this.state = {
         users : [],
-        collapsed: false,
         searchText: '',
         startTime: '',
         endTime: '',
@@ -82,11 +80,11 @@ class student extends Component {
         usersTimes : [],
         sortingNumbersNon : [],
         sortingNumbers : [],
+        loading : false,
       }
       
       this.onOk = this.onOk.bind(this);
       this.onChange = this.onChange.bind(this);
-      this.delete = this.delete.bind(this);
       this.confirmLogout = this.confirmLogout.bind(this);
       this.cancelLogout = this.cancelLogout.bind(this);
 
@@ -114,7 +112,6 @@ class student extends Component {
             title: '앱 이름',
             dataIndex: 'name_app',
             width: '18%',
-            editable: true,
             key: 'name_app',
             ...this.getColumnSearchProps('name_app'),
             sorter: (a, b) => this.compStringReverse(a.name_app, b.name_app),
@@ -124,7 +121,6 @@ class student extends Component {
               title: '앱 ID',
               dataIndex: 'id_app',
               width: '18%',
-              editable: true,
               key: 'id_app',
               ...this.getColumnSearchProps('id_app'),
               sorter: (a, b) => this.compStringReverse(a.id_app, b.id_app),
@@ -132,56 +128,12 @@ class student extends Component {
           {
             title: '총사용량',
             dataIndex: 'startTime',
-            width: '18%',
-            editable: true,
+            width: '36%',
             key: 'startTime',
             ...this.getColumnSearchProps('startTime'),
             sorter: (a, b) => this.compStringReverse(a.startTime, b.startTime),
             sortDirections: ['descend', 'ascend'],
         },   
-              
-        // -----------------------------Operation
-        {
-          dataIndex: 'operation',
-          render: (text, record) => {
-            
-            const editable = this.isEditing(record);
-            return (
-              <div>
-                {editable ? (
-                  <span>
-                    <EditableContext.Consumer>
-                      
-                      {form => (
-                        <Popconfirm
-                          title="저장하시겠습니까?"
-                          onConfirm={() => this.save(form, record.key)}
-                          okText="확인" cancelText="취소"
-                        >
-                          <a
-                            href="localhost:3000"
-                            style={{ marginRight: 8 , float : "left"}}
-                          >
-                            저장
-                          </a>
-                        </Popconfirm>
-                      )}
-                    </EditableContext.Consumer>
-                    
-                    <div stlye= {{float : "left"}}onClick={() => this.cancel(record.key)} >
-                      취소
-                    </div>
-                  </span>
-                ) 
-                
-                : (
-                  <a href = "localhost:3000" onClick={() => this.edit(record.key)}>편집</a>
-                )}
-              </div>
-            );
-          },
-        },
-        // -----------------------------Operation
       ];
 
       
@@ -255,14 +207,10 @@ class student extends Component {
         }
         this.setState({
           users : res.data,
+          loading : false,
         })
         });
   }
-
-    onCollapse = (collapsed) => {
-      console.log(collapsed);
-      this.setState({ collapsed });
-    }
 
 // sorting 
     onChange = (value, dateString) => {
@@ -351,6 +299,7 @@ class student extends Component {
                         minutes = minutes - (days*24*60 + hours*60); //20 minutes.
                         console.log(hours , minutes);
                       }
+                      // startHours와 firstDate의 시간 차를 구하고, 그것의 day, hours, minutes를 구한다.
 
 
                       this.setState({
@@ -438,16 +387,19 @@ class student extends Component {
       }
 
       confirmLogout = (e) =>{
-        axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout')
-              .then(res => console.log(res.data));
-  
-        Cookies.remove('admin');
-        message.success('로그아웃 성공했습니다.');
-  
-        setTimeout(() => {
-          return this.props.history.push('/')
-        }, 1000)
-  
+        var userSession;
+        userSession = {
+          userName : sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+        }
+          axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout', userSession)
+            .then((res) => {
+              console.log(res.data)
+              message.success('로그아웃 성공했습니다.');
+              sessionStorage.removeItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+              setTimeout(() => {
+                return this.props.history.push('/')
+              }, 1000)
+          });
       };
       
       cancelLogout = (e) => {
@@ -465,45 +417,9 @@ class student extends Component {
         return 0;
       }
 
-    
-      delete = (e) => {
-        e.preventDefault();
-        const {selectedRowKeys, users} = this.state
-
-        function selectedRowDelete(users){
-          for(let i = 0; i < selectedRowKeys.length ; i++)
-          {
-            if(users.key === selectedRowKeys[i])
-            {
-              return false;
-            }
-          }
-          return true;
-        }
-        var rowArrayDelete = users.filter(selectedRowDelete)
-
-        this.setState({
-          users : rowArrayDelete,
-        })
-
-        var key = []
-        key = selectedRowKeys;
-
-        for(let j = 0 ; j < selectedRowKeys.length ; j++)
-        {
-          axios.delete(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/stusg/delete/${key[j]}`)
-          .then(res => {
-            console.log(res);
-          })
-          .catch((err) => {
-            console.log(err);
-          })
-        }
-      }
-      
-      
-      
       render() {
+        var content;
+
         // console.log(this.state.users);
         const components = {
           body: {
@@ -541,26 +457,32 @@ class student extends Component {
           //   name: record.name,
           // }),
         };
-        
-        const hasSelected = this.state.selectedRowKeys.length > 0;
-        return (
-          <Layout style={{ minHeight: '100vh' }}>
-            <Sider
-              collapsible 
-              collapsed={this.state.collapsed}
-              onCollapse={this.onCollapse}
-            >
-              <div className="App-logo" />
-              <Menu theme="dark" defaultSelectedKeys={['7']} mode="inline" style={{maxHeight:"898px"}}>
 
-                <Menu.Item key = "1" style= {{marginTop: '32%'}}>
-                    <Icon type="pie-chart" /> <span>대시보드</span>
+        if(this.state.loading) {
+
+          content = <div style={{marginTop: "25%", textAlign: "center"}}>
+            <Spin tip="Loading...">
+            </Spin>
+        </div>
+
+        }
+        else {
+          content = <Fragment>
+          <Layout style={{ minHeight: '100vh' }}>
+          <Sider>
+              <div className="App-logo" />
+              <Menu theme="dark" defaultSelectedKeys={['7']} mode="inline" style={{height:"100%"}}>
+
+              <Menu.Item key = "9" style= {{backgroundColor : "#28948D", margin : 0, height : "53px"}}>
+              </Menu.Item>
+                <Menu.Item key = "1" style= {{marginTop : 0, paddingTop : "12px", height : "57px"}}>
+                    <Icon type="pie-chart" /><span style={{fontColor : "white"}}>대시보드</span>
                     <Link to = {`/main`}/>  
                 </Menu.Item>  
-
                 <SubMenu
-                  key="sub1"
-                  title={<span><Icon type="team" /><span>설정</span></span>}
+                  key="sub2"
+                  style={{marginTop : "13px"}}
+                  title={<span><Icon type="setting" /><span style={{fontColor : "white"}}>설정</span></span>}
                 >
                   <Menu.Item key="2"><Link to = {`/prohibition`}/>사용금지 목록</Menu.Item>
                   <Menu.Item key="3"><Link to = {`/settingIngang`}/>타 인강 목록</Menu.Item>
@@ -568,21 +490,22 @@ class student extends Component {
                 </SubMenu>
 
                 <SubMenu
-                  key="sub2"
-                  title={<span><Icon type="user" /><span>조회</span></span>}
+                  
+                  key="sub1"
+                  title={<span><Icon type="file-search" /><span>조회</span></span>}
+                  style={{marginTop : "13px"}}
                 >
                   <Menu.Item key="5"><Link to = {`/app`}/>앱별 사용이력</Menu.Item>
                   <Menu.Item key="6"><Link to = {`/ingang`}/>인강별 사용이력</Menu.Item>
                   <Menu.Item key="7"><Link to = {`/student`}/>학생별 사용이력</Menu.Item>
                 </SubMenu>
 
-                  <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
-                    
+                <Menu.Item key = "8" onClick={this.logout} style={{position:"relative", top:"71.5%", marginBottom: 0}}>
+                    <Icon type="logout"/>
                     
                     <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
-                        <Icon type="logout"/>
-                        <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
-                        <Link to = {`/`}/>                 
+                        <span>로그아웃</span> 
+                        <Link to = {`/`}/>                  
                     </Popconfirm>
 
                   </Menu.Item>
@@ -591,14 +514,17 @@ class student extends Component {
 
 
             <Layout>
-              <Header style={{ background: '#1DA57A', padding: 0 }} >
-                <Breadcrumb style={{ margin: '12px 0'}}>
-                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "4vh", fontWeight :"bolder", fontSize : "3.2vh"}}>학생별 사용이력</h1></Breadcrumb.Item>
-                </Breadcrumb>
+              <Header style={{ background: '#28948D', padding: 0, height : "52px" }} >
               </Header>
 
 
-              <Content style={{ margin: '5vh 30px 30px 30px' }}>
+              <Content style={{  }}>
+                <div style={{fontWeight : "600", fontSize : "2.5vh", height : 50, marginTop : 38, marginLeft : 38}}>
+                  학생별 사용이력 조회
+                </div>
+
+                <div style={{margin: '0 38px 0 38px', padding: "35px 48px 48px 48px", background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
+                
                 <div>
                   
                   <RangePicker
@@ -607,11 +533,10 @@ class student extends Component {
                     placeholder={['날짜 선택', '날짜 선택']}
                     onChange={this.onChangePicker}
                     onOk={this.onOk}
-                    style={{margin : '1% 0 1% 0'}}
+                    style={{margin : '0 0 1% 0'}}
                   />
                 </div>
 
-                <div style={{ padding: 11, background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
                 <Table
                     components={components}
                     bordered
@@ -626,14 +551,16 @@ class student extends Component {
                      rowkey={record => record.uid}
                   />
                 </div>
-                <div style={{float:"right"}}>
-                  <Button type="danger" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
-                </div>
               </Content>
               
             </Layout>
           </Layout>
-    
+        </Fragment>
+        }
+        return (
+          <div>
+            {content}
+          </div>
         );
       }
     }

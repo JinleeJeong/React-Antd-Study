@@ -1,9 +1,9 @@
-import React, { Component } from 'react';
-import { Layout, Menu, Breadcrumb, Icon, Table, Button, Input, Form, InputNumber, Popconfirm, message} from 'antd';
+import React, { Component, Fragment } from 'react';
+import { Layout, Menu, Icon, Table, Button, Input, Form, InputNumber, Popconfirm, message, Spin} from 'antd';
 import {Link} from 'react-router-dom';
 import Highlighter from 'react-highlight-words';
 import axios from 'axios'
-import Cookies from 'js-cookie'
+
 // -----------------------Layout
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
@@ -78,13 +78,12 @@ class settingIngang extends Component {
 
       this.state = {
         users : [],
-        collapsed: false,
         searchText: '',
         selectedRowKeys : [],
         sortingNumbersNon : [],
         sortingNumbers : [],
         editingKey : '',
-
+        loading : true,
       }
       
       this.onChange = this.onChange.bind(this);
@@ -97,7 +96,7 @@ class settingIngang extends Component {
             title: '앱 이름',
             dataIndex: 'name_app',
             key: 'name_app',
-            width: '40%',
+            width: '46%',
             editable: true,
             ...this.getColumnSearchProps('name_app'),
             sorter: (a,b) => this.compStringReverse(a.name_app, b.name_app),
@@ -108,7 +107,7 @@ class settingIngang extends Component {
           {
             title: '앱 ID',
             dataIndex: 'id_app',
-            width: '40%',
+            width: '46%',
             editable: true,
             key: 'id_app',
             ...this.getColumnSearchProps('id_app'),
@@ -117,7 +116,9 @@ class settingIngang extends Component {
 
         // -----------------------------Operation
         {
+          title:  '수정',
           dataIndex: 'operation',
+          width: '15%',
           render: (text, record) => {
             const editable = this.isEditing(record);
             return (
@@ -190,7 +191,7 @@ class settingIngang extends Component {
           }
 
           console.log(updateobj);
-          axios.put(`http://localhost:8080/api/sp/ingangs/update/${key}`, updateobj)
+          axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/ingangs/update/${key}`, updateobj)
           .then(res => console.log(res));
         }
         else {
@@ -207,7 +208,7 @@ class settingIngang extends Component {
     }
     // ---------------------------------Edit Result or Change State
     componentDidMount(){
-      axios.get('http://localhost:8080/api/sp/ingangs')
+      axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/ingangs')
       .then(res => {
         for ( let i = 0 ; i < res.data.length ; i++){
           res.data[i].key = res.data[i]['idx'];
@@ -216,14 +217,10 @@ class settingIngang extends Component {
         }
         this.setState({
           users : res.data,
+          loading : false
       })
     });
   }
-
-    onCollapse = (collapsed) => {
-      console.log(collapsed);
-      this.setState({ collapsed });
-    }
 
   // sorting 
     onChange = (value, dateString) => {
@@ -253,14 +250,14 @@ class settingIngang extends Component {
               size="small"
               style={{ width: 90, marginRight: 8 }}
             >
-              Search
+              확인
             </Button>
             <Button
               onClick={() => this.handleReset(clearFilters)}
               size="small"
               style={{ width: 90 }}
             >
-              Reset
+              취소
             </Button>
           </div>
         ),
@@ -302,18 +299,21 @@ class settingIngang extends Component {
 
        // ============================= 로그아웃 
 
-    confirmLogout = (e) =>{
-      axios.get('http://localhost:8080/api/sp/logout')
-            .then(res => console.log(res.data));
-
-      Cookies.remove('admin');
-      message.success('로그아웃 성공했습니다.');
-
-      setTimeout(() => {
-        return this.props.history.push('/')
-      }, 1000)
-
-    };
+       confirmLogout = (e) =>{
+        var userSession;
+        userSession = {
+          userName : sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+        }
+          axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout', userSession)
+            .then((res) => {
+              console.log(res.data)
+              message.success('로그아웃 성공했습니다.');
+              sessionStorage.removeItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+              setTimeout(() => {
+                return this.props.history.push('/')
+              }, 1000)
+          });
+      };
     
     cancelLogout = (e) => {
       message.error('로그아웃 취소');
@@ -356,7 +356,7 @@ class settingIngang extends Component {
 
         for(let j = 0 ; j < selectedRowKeys.length ; j++)
         {
-          axios.delete(`http://localhost:8080/api/sp/ingangs/delete/${key[j]}`)
+          axios.delete(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/ingangs/delete/${key[j]}`)
           .then(res => {
             console.log(res);
           })
@@ -383,7 +383,7 @@ class settingIngang extends Component {
               
               console.log(insertObj);
 
-              axios.post(`http://localhost:8080/api/sp/ingangs/insert`, insertObj)
+              axios.post(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/ingangs/insert`, insertObj)
               .then(res => {
                 res.data.key = res.data.idx;
                 delete res.data.idx;
@@ -404,6 +404,9 @@ class settingIngang extends Component {
       }
 
       render() {
+        var content;
+
+
         const {
           getFieldDecorator, getFieldError, isFieldTouched,
         } = this.props.form;
@@ -441,26 +444,33 @@ class settingIngang extends Component {
             })
           } 
         };
-
         const hasSelected = this.state.selectedRowKeys.length > 0;
-        return (
-          <Layout style={{ minHeight: '100vh' }}>
-            <Sider
-              collapsible 
-              collapsed={this.state.collapsed}
-              onCollapse={this.onCollapse}
-            >
-              <div className="App-logo" />
-              <Menu theme="dark" defaultSelectedKeys={['3']} mode="inline" style={{maxHeight:"898px"}}>
 
-                <Menu.Item key = "1" style= {{marginTop: '32%'}}>
-                    <Icon type="pie-chart" /> <span>대시보드</span>
+        if(this.state.loading) {
+
+          content = <div style={{marginTop: "25%", textAlign: "center"}}>
+            <Spin tip="Loading...">
+            </Spin>
+        </div>
+        }
+        else{
+        content = 
+        <Fragment>
+          <Layout style={{ minHeight: '100vh' }}>
+          <Sider>
+              <div className="App-logo" />
+              <Menu theme="dark" defaultSelectedKeys={['3']} mode="inline" style={{height:"100%"}}>
+
+              <Menu.Item key = "9" style= {{backgroundColor : "#28948D", margin : 0, height : "53px"}}>
+              </Menu.Item>
+                <Menu.Item key = "1" style= {{marginTop : 0, paddingTop : "12px", height : "57px"}}>
+                    <Icon type="pie-chart" /><span style={{fontColor : "white"}}>대시보드</span>
                     <Link to = {`/main`}/>  
                 </Menu.Item>  
-
                 <SubMenu
-                  key="sub1"
-                  title={<span><Icon type="team" /><span>설정</span></span>}
+                  key="sub2"
+                  style={{marginTop : "13px"}}
+                  title={<span><Icon type="setting" /><span style={{fontColor : "white"}}>설정</span></span>}
                 >
                   <Menu.Item key="2"><Link to = {`/prohibition`}/>사용금지 목록</Menu.Item>
                   <Menu.Item key="3"><Link to = {`/settingIngang`}/>타 인강 목록</Menu.Item>
@@ -468,20 +478,21 @@ class settingIngang extends Component {
                 </SubMenu>
 
                 <SubMenu
-                  key="sub2"
-                  title={<span><Icon type="user" /><span>조회</span></span>}
+                  
+                  key="sub1"
+                  title={<span><Icon type="file-search" /><span>조회</span></span>}
+                  style={{marginTop : "13px"}}
                 >
                   <Menu.Item key="5"><Link to = {`/app`}/>앱별 사용이력</Menu.Item>
                   <Menu.Item key="6"><Link to = {`/ingang`}/>인강별 사용이력</Menu.Item>
                   <Menu.Item key="7"><Link to = {`/student`}/>학생별 사용이력</Menu.Item>
                 </SubMenu>
 
-                  <Menu.Item key = "8" onClick={this.logout} style={{position:"fixed", bottom:"5vh", width: "auto"}}>
-                    
+                <Menu.Item key = "8" onClick={this.logout} style={{position:"relative", top:"71.5%", marginBottom: 0}}>
+                    <Icon type="logout"/>
                     
                     <Popconfirm title = "로그아웃 하시겠습니까?" onConfirm={this.confirmLogout} onCancel={this.cancelLogout} okText="확인" cancelText="취소">
-                        <Icon type="logout"/>
-                        <span>로그아웃&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 
+                        <span>로그아웃</span> 
                         <Link to = {`/`}/>                  
                     </Popconfirm>
 
@@ -491,21 +502,16 @@ class settingIngang extends Component {
 
 
             <Layout>
-              <Header style={{ background: '#1DA57A', padding: 0 }} >
-                <Breadcrumb style={{ margin: '12px 0'}}>
-                  <Breadcrumb.Item><h1 style={{color : 'white' , marginLeft : "4vh", fontWeight :"bolder", fontSize : "3.2vh"}}>타 인강 목록</h1></Breadcrumb.Item>
-                </Breadcrumb>
+              <Header style={{ background: '#28948D', padding: 0, height : "52px" }} >
               </Header>
 
-              <Content style={{ margin: '5vh 30px 30px 30px' }}>
-                
-                <div style={{ padding: 11, background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
-                <div style={{float:"left"}}>
-                  <Button style={{top : "0.5vh"}} type="danger" onClick ={this.delete} value={this.state.users.key} disabled={!hasSelected}>삭제</Button>
-                </div>
-                <div style={{marginRight : "20vh",textAlign : "center", marginBottom:"1.5vh", fontWeight : "600", fontSize : "2vh", marginTop : "1vh"}}>
+              <Content style={{  }}>
+                <div style={{fontWeight : "600", fontSize : "2.5vh", height : 50, marginTop : 38, marginLeft : 38}}>
                   타 인강 목록
                 </div>
+
+                <div style={{ margin: '0 38px 0px 38px', padding: 48, background: '#fff', minHeight: 360, clear:'both', marginBottom: '1%'}}>
+                
                 <Table
                     components={components}
                     bordered
@@ -520,13 +526,13 @@ class settingIngang extends Component {
                      rowkey={record => record.uid}
                   />
                 
-
-                <Form layout="inline" style={{marginLeft: "4.5%", display: "flex"}}>
+                <Button type="danger" onClick = {this.delete} disabled={!hasSelected} style ={{float: "left", marginTop : 14, marginRight : 5, width:"6vh"}}><Icon type="delete"></Icon></Button>
+                <Form layout="inline" style={{display: "flex", marginTop : 10}}>
                   <Form.Item
                   {...formItemLayout}
                     validateStatus={appNameError ? 'error' : ''}
                     help={appNameError || ''}
-                    style={{width : "42%", marginRight:"0"}}
+                    style={{width : "47%", marginRight:0}}
                     
                   ><div>
                     {getFieldDecorator('name_app', {
@@ -540,7 +546,7 @@ class settingIngang extends Component {
                   {...formItemLayout}
                     validateStatus={appIdError ? 'error' : ''}
                     help={appIdError || ''}
-                    style={{width : "42%"}}
+                    style={{width : "48%", marginLeft : -18, marginRight :0}}
                   ><div>
                     {getFieldDecorator('id_app', {
                       rules: [{ required: true, message: '앱 번호를 입력하세요.' }],
@@ -554,6 +560,7 @@ class settingIngang extends Component {
                       <Button
                         type="primary"
                         htmlType="submit"
+                        style={{marginLeft : -18}}
                       >
                         추가
                       </Button>
@@ -563,7 +570,14 @@ class settingIngang extends Component {
                 </div>
               </Content>
             </Layout>
-          </Layout>
+          </Layout>          
+        </Fragment>
+        }
+
+        return (
+          <div>
+            {content}
+          </div>
     
         );
       }

@@ -15,6 +15,13 @@ var secretObj = require('../config/jwt');
 //     });
 // });
 
+// models.teachers.create({id_tc: '60St', ip_tc: '50St', token_tc : '100St', name_tc : "50St"})
+//   .then(result => {
+//     res.json(result);
+//   })
+//   .catch(err => {
+//     console.error(err);
+//   });
 /* UPDATE teachers */
 
 router.put('/sp/update/:id', (req, res, next) => {
@@ -29,5 +36,6 @@ router.put('/sp/update/:id', (req, res, next) => {
       }).then(users => { res.json(users);
   });
 });
+
 
 module.exports = router;

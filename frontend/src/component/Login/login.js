@@ -18,30 +18,29 @@ class login extends Component {
         this.handleSubmit = this.handleSubmit.bind(this);
     }
     componentDidMount(){
-        // axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/students')
-        axios.get('http://localhost:8080/api/sp/students')
-        .then(res => {
-            console.log(res.data);
-        })
+
     }
     handleSubmit = (e) => {
         e.preventDefault();
+        
         this.props.form.validateFields((err, values) => {
           if (!err) {
-            console.log('Received values of form: ', values);
-
-                // axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/login', values, {withCredentials: true})
-                axios.post('http://localhost:8080/api/sp/login', values, {withCredentials: true})
+            var loginHeaders = {
+                'Content-Type' : 'application/json',
+                 'userId' : values.userId,
+                  'userPw' :values.userPw
+            }
+                axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/login', {withCredentials: true}, {headers : loginHeaders})
                 .then(result => {
                     if(result.data.message !== 'failed') {
-                        message.success('Admin Success');
+                        var messageResult = result.data.userName.concat(" : success")
+                        message.success(messageResult);
+                        sessionStorage.setItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12', result.data.userName)
                         setTimeout(() => {
-                            this.props.history.push(`/main:`+result.data.userName)
-                            console.log(result.data.userName, '여기');
+                            this.props.history.push(`/main`)
                             return window.location.reload();
                           }, 1000)
                     } else {
-                        console.log(result.data);
                         message.error('사용자 정보를 확인해주세요.');
                         this.setState({loading : false});
                     }
@@ -70,14 +69,14 @@ class login extends Component {
 
                             </Form.Item>
                             <Form.Item>
-                            {getFieldDecorator('id_ad', {
+                            {getFieldDecorator('userId', {
                                 rules: [{ required: true, message: 'Please input your Id!' }],
                             })(
                                 <Input prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)' }} />} placeholder="서버 관리자" />
                             )}
                             </Form.Item>
                             <Form.Item>
-                            {getFieldDecorator('Password', {
+                            {getFieldDecorator('userPw', {
                                 rules: [{ required: true, message: 'Please input your Password!' }],
                             })(
                                 <Input prefix={<Icon type="lock" style={{ color: 'rgba(0,0,0,.25)' }} />} type="password" placeholder="관리자 비밀번호" />
