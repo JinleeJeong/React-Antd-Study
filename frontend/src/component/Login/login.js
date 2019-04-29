@@ -30,12 +30,12 @@ class login extends Component {
                  'userId' : values.userId,
                   'userPw' :values.userPw
             }
-                axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/login', {withCredentials: true}, {headers : loginHeaders})
+                axios.post('')
                 .then(result => {
                     if(result.data.message !== 'failed') {
                         var messageResult = result.data.userName.concat(" : success")
                         message.success(messageResult);
-                        sessionStorage.setItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12', result.data.userName)
+                        sessionStorage.setItem('', result.data.userName)
                         setTimeout(() => {
                             this.props.history.push(`/main`)
                             return window.location.reload();
