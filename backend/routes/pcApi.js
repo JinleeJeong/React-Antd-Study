@@ -7,14 +7,14 @@ var sequelize = require('sequelize')
 var key = require("../config/cry");
 const crypto = require('crypto');
 const Op = sequelize.Op;
-
+const ivBuffer = '0000000000000000'
 var failedMessage = 'failed';
 var failedResultCode = 400;
 var successResultCode = 200;
 
 function encrypt(text){
     if(typeof text == 'string' && text !== null) {
-        var cipher = crypto.createCipher('aes-256-cbc',key.crtSecret); 
+        var cipher = crypto.createCipheriv('aes-256-cbc',key.crtSecret, ivBuffer); 
         var encipheredContent = cipher.update(text,'utf8','base64'); 
         encipheredContent += cipher.final('base64');
     
@@ -23,17 +23,23 @@ function encrypt(text){
     else { 
         return null;
     }
-    
 }
+
 /* 암호화에서 문자열 16자 이하면, update는 null값을 가진다. 
  항상 update + final 형식으로 암호화를 해야한다.
 *** Key값은 클라이언트에 노출되지 않도록 한다. *** */
 function decrypt(text){
- var decipher = crypto.createDecipher('aes-256-cbc', key.crtSecret);
- var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
- decipheredPlaintext += decipher.final('utf8');
+    if(typeof text == 'string' && text !== null && text !== 'null'){
+        var decipher = crypto.createDecipheriv('aes-256-cbc', key.crtSecret, ivBuffer);
+        var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
+        decipheredPlaintext += decipher.final('utf8');
 
- return decipheredPlaintext;
+        return decipheredPlaintext;
+    }
+    else {
+        return null;
+    }
+ 
 }
 
 var successMessage = encrypt('success');
@@ -56,7 +62,8 @@ router.post('/pc/login', (req, res, next) => {
         .then((branches) => {
             console.log("=====================================================Branches Login==============================================================")
             console.log("Headers : ",req.headers);
-            branches.update({ip_br : decrypt(req.body.ip), thumburl_br : decrypt(req.body.upLoadUrl), id_br : decrypt(req.body.members.brId), name_br : decrypt(req.body.members.brName), os_br : req.headers.os})
+            console.log("Body : ",req.body);
+            branches.update({ip_br : decrypt(req.body.ip), thumburl_br : decrypt(req.body.upLoadUrl), mac_br : decrypt(req.body.macAddr), id_br : decrypt(req.body.members.brId), name_br : decrypt(req.body.members.brName), os_br : req.headers.os})
             .catch((err)=>{console.log('branches update 최신 : ',err.original.detail)})
 
             models.managers.findOne({where : {id_user : req.headers.userid}})
@@ -75,6 +82,7 @@ router.post('/pc/login', (req, res, next) => {
                     var bulkCreateStudents = [];
                     var bulkCreateStsettings = [];
                     console.log("선생 삭제");
+                    console.log("req.body.members.brInfos.length : ", req.body.members.brInfos.length)
                     for(let i = 0 ; i < req.body.members.brInfos.length; i++){
                         bulkCreateTeachers.push({
                             id_tc : decrypt(req.body.members.brInfos[i].tcrId), 
@@ -84,25 +92,28 @@ router.post('/pc/login', (req, res, next) => {
                         bulkCreateTcsettings.push({
                             id_tc : decrypt(req.body.members.brInfos[i].tcrId)
                         })
+                        console.log(" req.body.members.brInfos[i].stInfos.length : ", req.body.members.brInfos[i].stInfos.length)
                         for(let j = 0 ; j < req.body.members.brInfos[i].stInfos.length; j++){
+                            
+                            console.log('Students !!!! : ',decrypt(req.body.members.brInfos[i].stInfos[j].stId))
+
                             bulkCreateStudents.push({
                                 id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), 
                                 name_st : decrypt(req.body.members.brInfos[i].stInfos[j].stName), 
                                 id_tc : decrypt(req.body.members.brInfos[i].tcrId), 
                                 id_br : decrypt(req.body.members.brId)
                             })
-                            bulkCreateStsettings.push({
-                                id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)
+                            models.stsettings.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)})
+                            .catch(() => {
+                                console.log("stsettings Already");
                             })
+
                         }  
                     }
                     models.teachers.bulkCreate(bulkCreateTeachers)
                     .then(() => {
                         models.tcsettings.bulkCreate(bulkCreateTcsettings)
                         .catch((err) => {console.log("tcsettings 존재", err.original.detail)})
-
-                        models.stsettings.bulkCreate(bulkCreateStsettings)
-                        .catch((err) => {console.log("stsettings 존재", err.original.detail)})
 
                         models.students.bulkCreate(bulkCreateStudents)
                         .then(() => {
@@ -151,7 +162,7 @@ router.post('/pc/login', (req, res, next) => {
 
         }).catch(() => {
 
-            models.branches.create({ip_br : decrypt(req.body.ip), thumburl_br : decrypt(req.body.upLoadUrl), id_br : decrypt(req.body.members.brId), name_br : decrypt(req.body.members.brName), os_br : req.headers.os})
+            models.branches.create({ip_br : decrypt(req.body.ip), thumburl_br : decrypt(req.body.upLoadUrl), mac_br : decrypt(req.body.macAddr), id_br : decrypt(req.body.members.brId), name_br : decrypt(req.body.members.brName), os_br : req.headers.os})
             .then(() => {
             console.log("=====================================================Branches Insert==============================================================")
             console.log("Headers : ",req.headers);
@@ -228,9 +239,10 @@ router.post('/pc/login', (req, res, next) => {
                             id_tc : decrypt(req.body.members.brInfos[i].tcrId), 
                             id_br : decrypt(req.body.members.brId)
                         })
-                        bulkCreateStsettings.push({
-                            id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)
-                        })
+                        models.stsettings.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)})
+                            .catch(() => {
+                                console.log("stsettings Already");
+                            })
                     }
                 }
                 
@@ -308,13 +320,12 @@ router.post('/pc/login', (req, res, next) => {
                 console.log("=====================================================Teachers Login==============================================================");
                 console.log("Headers : ",req.headers);
                 models.tcsettings.findOne({where : {id_tc : req.headers.userid}})
-                .then((tcsettings) => {tcsettings.update({ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), token_tc : token, os_tc : req.headers.os})})
-                .catch(() => {models.tcsettings.create({id_tc : req.headers.userid, ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), token_tc : token, os_tc : req.headers.os})})
+                .then((tcsettings) => {tcsettings.update({ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), mac_tc : decrypt(req.body.macAddr), token_tc : token, os_tc : req.headers.os})})
+                .catch(() => {models.tcsettings.create({id_tc : req.headers.userid, ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), mac_tc : decrypt(req.body.macAddr), token_tc : token, os_tc : req.headers.os})})
                     console.log("tcsetting Update");
                     models.students.destroy({where : { id_tc : req.headers.userid}})
                     .then(() => {
                         var bulkCreateStudents = [];
-                        var bulkCreateStsettings = [];
                         console.log("학생 삭제");
                         for(var i = 0 ; i < req.body.members.brInfos.length ; i++){
                             if(req.headers.userid === decrypt(req.body.members.brInfos[i].tcrId)){
@@ -329,9 +340,10 @@ router.post('/pc/login', (req, res, next) => {
                                           id_tc : req.headers.userid,
                                            id_br : decrypt(req.body.members.brId)
                                     })
-                                    bulkCreateStsettings.push({
-                                        id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId),
-                                         ip_tc : decrypt(req.body.ip)
+                                    
+                                    models.stsettings.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), ip_tc : decrypt(req.body.ip)})
+                                    .catch(() => {
+                                        console.log("stsettings Already");
                                     })
                                     models.stsettings.update({ip_tc : decrypt(req.body.ip)}, {
                                         where : {id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)}
@@ -346,10 +358,6 @@ router.post('/pc/login', (req, res, next) => {
                         models.students.bulkCreate(bulkCreateStudents)
                         .then(() => {
                             var resultArray = []
-
-                            models.stsettings.bulkCreate(bulkCreateStsettings)
-                            .catch((err) => {console.log("stsettings Create 최신", err.original.detail)})
-
                             models.branches.findOne({where : {id_br : decrypt(req.body.members.brId)}})
                             .then((branches) => {
                                 models.students.findAll({include : [
@@ -392,8 +400,8 @@ router.post('/pc/login', (req, res, next) => {
                 }).catch(()=>{
                     console.log("학생 없음");
                     models.tcsettings.findOne({where : {id_tc : req.headers.userid}})
-                    .then((tcsettings) => {tcsettings.update({ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), token_tc : token, os_tc : req.headers.os})})
-                    .catch(() => {models.tcsettings.create({id_tc : req.headers.userid, ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), token_tc : token, os_tc : req.headers.os})})
+                    .then((tcsettings) => {tcsettings.update({ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), mac_tc : decrypt(req.body.macAddr), token_tc : token, os_tc : req.headers.os})})
+                    .catch(() => {models.tcsettings.create({id_tc : req.headers.userid, ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), mac_tc : decrypt(req.body.macAddr), token_tc : token, os_tc : req.headers.os})})
                     
                     var bulkCreateStudents = [];
                     var bulkCreateStsettings = [];
@@ -411,9 +419,10 @@ router.post('/pc/login', (req, res, next) => {
                                     id_tc : req.headers.userid, 
                                     id_br : decrypt(req.body.members.brId)
                                 })
-                                bulkCreateStsettings.push({
-                                    id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), ip_tc : decrypt(req.body.ip)
-                                })
+                                models.stsettings.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), ip_tc : decrypt(req.body.ip)})
+                                    .catch(() => {
+                                        console.log("stsettings Already");
+                                    })
                                 models.stsettings.update({ip_tc : decrypt(req.body.ip)}, {
                                     where : {id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)}
                                 }).then(() => {console.log("stsettings Update")}).catch((err) => {console.log("stsettings Update 최신", err.original.detail)});
@@ -426,9 +435,6 @@ router.post('/pc/login', (req, res, next) => {
                     models.students.bulkCreate(bulkCreateStudents)
                         .then(() => {
                             var resultArray = []
-
-                            models.stsettings.bulkCreate(bulkCreateStsettings)
-                            .catch((err) => {console.log("stsettings Create 최신", err.original.detail)})
 
                             models.branches.findOne({where : {id_br : decrypt(req.body.members.brId)}})
                             .then((branches) => {
@@ -488,7 +494,7 @@ router.post('/pc/login', (req, res, next) => {
                 var bulkCreateStsettings = [];
                 models.students.destroy({where : {id_tc : req.headers.userid}})
                 .catch((err) => {console.log("students clean", err.original.detail)})
-                models.tcsettings.create({id_tc : req.headers.userid, ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), token_tc : token, os_tc : req.headers.os})
+                models.tcsettings.create({id_tc : req.headers.userid, ip_tc : decrypt(req.body.ip), thumburl_tc : decrypt(req.body.upLoadUrl), mac_tc : decrypt(req.body.macAddr), token_tc : token, os_tc : req.headers.os})
                 .then(() => {
 
                     for(var i = 0 ; i < req.body.members.brInfos.length ; i++){
@@ -502,9 +508,10 @@ router.post('/pc/login', (req, res, next) => {
                                     id_tc : req.headers.userid,
                                     id_br : decrypt(req.body.members.brId)
                                 })
-                                bulkCreateStsettings.push({
-                                    id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), ip_tc : decrypt(req.body.ip)
-                                })
+                                models.stsettings.create({id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId), ip_tc : decrypt(req.body.ip)})
+                                    .catch(() => {
+                                        console.log("stsettings Already");
+                                    })
                                 models.stsettings.update({ip_tc : decrypt(req.body.ip)}, {
                                     where : {id_st : decrypt(req.body.members.brInfos[i].stInfos[j].stId)}
                                 }).then(() => {console.log("stsettings Update")}).catch((err) => {console.log("stsettings Update 최신", err.original.detail)});
@@ -519,10 +526,6 @@ router.post('/pc/login', (req, res, next) => {
                     models.students.bulkCreate(bulkCreateStudents)
                         .then(() => {
                             var resultArray = []
-
-                            models.stsettings.bulkCreate(bulkCreateStsettings)
-                            .catch((err) => {console.log("stsettings Create 최신", err.original.detail)})
-
                             models.branches.findOne({where : {id_br : decrypt(req.body.members.brId)}})
                             .then((branches) => {
                                 models.students.findAll({include : [

@@ -12,7 +12,7 @@ var certification = require('./routes/certification');
 var applist = require('./routes/applist');
 var appverinfo = require('./routes/appverinfo');
 var loginlogs = require('./routes/loginlogs');
-var stlogs = require('./routes/stlogs');
+var usage = require('./routes/usage');
 var pcApi = require('./routes/pcApi');
 var students = require('./routes/students');
 var teachers = require('./routes/teachers');
@@ -52,7 +52,7 @@ app.use(function(req, res, next) {
 app.use('/api', certification);
 app.use('/api', applist);
 app.use('/api', loginlogs);
-app.use('/api', stlogs);
+app.use('/api', usage);
 app.use('/api', pcApi);
 app.use('/api', students);
 app.use('/api', teachers);

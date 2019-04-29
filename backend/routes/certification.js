@@ -7,17 +7,30 @@ var key = require("../config/cry");
 var sequelize = require('sequelize')
 
 const crypto = require('crypto');
-
+const ivBuffer = '0000000000000000'
 
 var failedResultCode = 400;
-
 var successResultCode = 200;
 
 const Op = sequelize.Op;
 
+// function encrypt(text){
+//     if(typeof text == 'string' && text !== null) {
+//         var cipher = crypto.createCipher('aes-256-cbc',key.crtSecret); 
+//         var encipheredContent = cipher.update(text,'utf8','base64'); 
+//         encipheredContent += cipher.final('base64');
+    
+//         return encipheredContent;
+//     }
+//     else { 
+//         return null;
+//     }
+// }
+
+
 function encrypt(text){
     if(typeof text == 'string' && text !== null) {
-        var cipher = crypto.createCipher('aes-256-cbc',key.crtSecret); 
+        var cipher = crypto.createCipheriv('aes-256-cbc',key.crtSecret, ivBuffer); 
         var encipheredContent = cipher.update(text,'utf8','base64'); 
         encipheredContent += cipher.final('base64');
     
@@ -27,12 +40,13 @@ function encrypt(text){
         return null;
     }
 }
+
 /* 암호화에서 문자열 16자 이하면, update는 null값을 가진다. 
  항상 update + final 형식으로 암호화를 해야한다.
 *** Key값은 클라이언트에 노출되지 않도록 한다. *** */
 function decrypt(text){
     if(typeof text == 'string' && text !== null && text !== 'null'){
-        var decipher = crypto.createDecipher('aes-256-cbc', key.crtSecret);
+        var decipher = crypto.createDecipheriv('aes-256-cbc', key.crtSecret, ivBuffer);
         var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
         decipheredPlaintext += decipher.final('utf8');
 
@@ -81,7 +95,7 @@ router.post('/sp/login', (req, res, next) => {
             })
             .catch(() => {
                 console.log("No teachsers")
-                res.json({resultCode : failedResultCode, message : failedMessage})
+                res.json({resultCode : failedResultCode, message : 'failed'})
             })
         })
     })
@@ -125,6 +139,9 @@ router.post('/sp/logout', (req,res,next) => {
 // -------------------------------------------------------------aos Login
 router.post('/aos/login', (req, res, next) => {
     console.log("=========================================Aos Login==============================================")
+    console.log(req.headers);
+    console.log(req.body);
+
     const tokenJwt = jwt.sign({ 
         id_ad : req.headers.userid //payload(토큰 내용)
      }, secretObj.secret, //비밀키
@@ -135,6 +152,7 @@ router.post('/aos/login', (req, res, next) => {
     var resultApplist = [];
     var resultIngangApps = [];
     var resultBrowsers = [];
+    var pcInfos = [];
     models.students.findOne({ where : { id_st : req.headers.userid },
     include : [
         {
@@ -159,11 +177,12 @@ router.post('/aos/login', (req, res, next) => {
     ]  
     })
     .then((students) => {
-
+            
             console.log('students 존재', students.branch.id_br);
+            
             models.stsettings.findOne({where : {id_st : req.headers.userid}})
             .then((stsettings) => {
-                stsettings.update({os : req.headers.os, osver : req.headers.osver, ip_st : decrypt(req.body.ip), resolution : decrypt(req.body.resolution), cmdPort : req.body.cmdPort, token_st : decrypt(token)})
+                stsettings.update({os : req.headers.os, osver : req.headers.osver, ip_st : decrypt(req.body.ip), resolution : decrypt(req.body.resolution), cmdport : req.body.cmdPort, token_st : decrypt(token)})
                 .catch((err) => {console.log("stsettings 최신", err.original.detail)})
                 models.applist.findAll({where : {b_disabled : false}})
                 .then((applist) => {
@@ -202,9 +221,18 @@ router.post('/aos/login', (req, res, next) => {
                                 bBrowser : browsers[i].b_browser
                             })
                         }
+                        pcInfos.push({
+                            macAddr : encrypt(students.branch.mac_br),
+                            imgUploadURL : encrypt(students.branch.thumburl_br),
+                        })
+                        pcInfos.push({
+                            macAddr : encrypt(students.teacher.mac_tc),
+                            imgUploadURL : encrypt(students.teacher.thumburl_tc),
+                        })
+            
                             res.json({resultCode : successResultCode, message : successMessage, 
                                 token : token, userName : encrypt(students.name_st), 
-                                mgrUploadURL : encrypt(students.branch.thumburl_br), tcrUploadURL : encrypt(students.teacher.thumburl_tc),
+                                pcInfos : pcInfos,
                                 settings : { bBlockBrower : students.branch.b_blockbrowser, bBlockOtherApps  : students.branch.b_blockotherapps, 
                                             bBlockRemoveApps : students.branch.b_blockremove,
                                             bBlockForceStop : students.branch.b_blockforcestop, 
@@ -221,7 +249,7 @@ router.post('/aos/login', (req, res, next) => {
         
     }).catch(() => {
         console.log("Students Teachers branches 존재 X")            // Android Login before made Pc Info
-        models.stsettings.create({id_st : req.headers.userid, os : req.headers.os, osver : req.headers.osver, ip_st : decrypt(req.body.ip), resolution : decrypt(req.body.resolution), cmdPort : req.body.cmdPort, token_st : decrypt(token)})
+        models.stsettings.create({id_st : req.headers.userid, os : req.headers.os, osver : req.headers.osver, ip_st : decrypt(req.body.ip), resolution : decrypt(req.body.resolution), cmdport : req.body.cmdPort, token_st : decrypt(token)})
         .catch((err) => {console.log("stsettings Already")})
         models.students.create({id_st : req.headers.userid})
         .then(() => {
@@ -261,8 +289,16 @@ router.post('/aos/login', (req, res, next) => {
                             bBrowser : browsers[i].b_browser
                         })
                     }
+                    pcInfos.push({
+                        macAddr : null,
+                        imgUploadURL : null,
+                    })
+                    pcInfos.push({
+                        macAddr : null,
+                        imgUploadURL : null,
+                    })
                     res.json({resultCode : successResultCode, message : successMessage, 
-                        token : token, userName : null, mgrUploadURL : null, tcrUploadURL : null, 
+                        token : token, userName : null, pcInfos : pcInfos, 
                         settings : {bBlockBrower : null, bBlockOtherApps  : null, 
                             bBlockRemoveApps : null,
                             bBlockForceStop : null, 
@@ -275,7 +311,7 @@ router.post('/aos/login', (req, res, next) => {
             }).catch((err) => {console.log("allowedApps Null", err.original.detail)})
         }).catch((err) => 
         {
-            models.stsettings.update({os : req.headers.os, osver : req.headers.osver, ip_st : decrypt(req.body.ip), resolution : decrypt(req.body.resolution), cmdPort : req.body.cmdPort, token_st : decrypt(token)},{
+            models.stsettings.update({os : req.headers.os, osver : req.headers.osver, ip_st : decrypt(req.body.ip), resolution : decrypt(req.body.resolution), cmdport : req.body.cmdPort, token_st : decrypt(token)},{
                 where : {id_st : req.headers.userid}
             }).catch((err) => {console.log("stsettings 최신", err.original.detail)})
             console.log("Students 존재 Error")
@@ -315,8 +351,16 @@ router.post('/aos/login', (req, res, next) => {
                             bBrowser : browsers[i].b_browser
                         })
                     }
+                    pcInfos.push({
+                        macAddr : null,
+                        imgUploadURL : null,
+                    })
+                    pcInfos.push({
+                        macAddr : null,
+                        imgUploadURL : null,
+                    })
                     res.json({resultCode : successResultCode, message : successMessage, 
-                        token : token, userName : null, mgrUploadURL : null, tcrUploadURL : null, 
+                        token : token, userName : null, pcInfos : pcInfos,
                         settings : {bBlockBrower : null, bBlockOtherApps  : null, 
                             bBlockRemoveApps : null,
                             bBlockForceStop : null, 
