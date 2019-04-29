@@ -22,7 +22,7 @@ class App extends Component {
   }
   componentDidMount(){
     var userSession;
-    userSession = sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+    userSession = sessionStorage.getItem('')
     if(window.location.pathname !== '/'){
       if(userSession !== null){
         console.log("Success")

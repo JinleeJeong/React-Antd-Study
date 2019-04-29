@@ -191,7 +191,7 @@ class settingIngang extends Component {
           }
 
           console.log(updateobj);
-          axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/ingangs/update/${key}`, updateobj)
+          axios.put(`http://localhost:8080/api/sp/ingangs/update/${key}`, updateobj)
           .then(res => console.log(res));
         }
         else {
@@ -208,7 +208,7 @@ class settingIngang extends Component {
     }
     // ---------------------------------Edit Result or Change State
     componentDidMount(){
-      axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/ingangs')
+      axios.get('http://localhost:8080/api/sp/ingangs')
       .then(res => {
         for ( let i = 0 ; i < res.data.length ; i++){
           res.data[i].key = res.data[i]['idx'];
@@ -302,13 +302,13 @@ class settingIngang extends Component {
        confirmLogout = (e) =>{
         var userSession;
         userSession = {
-          userName : sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+          userName : sessionStorage.getItem('')
         }
-          axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout', userSession)
+          axios.post('http://localhost:8080/api/sp/logout', userSession)
             .then((res) => {
               console.log(res.data)
               message.success('로그아웃 성공했습니다.');
-              sessionStorage.removeItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+              sessionStorage.removeItem('')
               setTimeout(() => {
                 return this.props.history.push('/')
               }, 1000)
@@ -356,7 +356,7 @@ class settingIngang extends Component {
 
         for(let j = 0 ; j < selectedRowKeys.length ; j++)
         {
-          axios.delete(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/ingangs/delete/${key[j]}`)
+          axios.delete(`http://localhost:8080/api/sp/ingangs/delete/${key[j]}`)
           .then(res => {
             console.log(res);
           })
@@ -383,7 +383,7 @@ class settingIngang extends Component {
               
               console.log(insertObj);
 
-              axios.post(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/ingangs/insert`, insertObj)
+              axios.post(`http://localhost:8080/api/sp/ingangs/insert`, insertObj)
               .then(res => {
                 res.data.key = res.data.idx;
                 delete res.data.idx;

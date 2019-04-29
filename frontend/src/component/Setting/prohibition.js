@@ -261,7 +261,7 @@ class prohibition extends Component {
             }
   
             console.log(updateobj);
-            axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/disableapps/${key}`, updateobj)
+            axios.put(`http://localhost:8080/api/sp/disableapps/${key}`, updateobj)
             .then(res => console.log("수정 완료"));
             message.success("수정 완료")
           }
@@ -301,7 +301,7 @@ class prohibition extends Component {
             }
 
             console.log(updateobj);
-            axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/disableapps/${key}`, updateobj)
+            axios.put(`http://localhost:8080/api/sp/disableapps/${key}`, updateobj)
             .then(res => console.log("수정 완료"));
             message.success("수정 완료")
         }
@@ -320,7 +320,7 @@ class prohibition extends Component {
     
     componentDidMount(){
       
-        axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/disableapps')
+        axios.get('http://localhost:8080/api/sp/disableapps')
         .then(res => {
           for ( let i = 0 ; i < res.data.disableApps.length ; i++){
             res.data.disableApps[i].key = res.data.disableApps[i]['idx'];
@@ -331,7 +331,7 @@ class prohibition extends Component {
           })
         });
         
-        axios.get('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/ableapps')
+        axios.get('http://localhost:8080/api/sp/ableapps')
         .then(res => {
           for ( let i = 0 ; i < res.data.ableApps.length ; i++){
             res.data.ableApps[i].key = res.data.ableApps[i]['idx'];
@@ -422,13 +422,13 @@ class prohibition extends Component {
     confirmLogout = (e) =>{
       var userSession;
       userSession = {
-        userName : sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+        userName : sessionStorage.getItem('')
       }
-        axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout', userSession)
+        axios.post('http://localhost:8080/api/sp/logout', userSession)
           .then((res) => {
             console.log(res.data)
             message.success('로그아웃 성공했습니다.');
-            sessionStorage.removeItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+            sessionStorage.removeItem('')
             setTimeout(() => {
               return this.props.history.push('/')
             }, 1000)
@@ -475,7 +475,7 @@ class prohibition extends Component {
     
             for(let j = 0 ; j < selectedRowKeysFalse.length ; j++)
             {
-              axios.delete(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/delete/${key[j]}`)
+              axios.delete(`http://localhost:8080/api/sp/delete/${key[j]}`)
               .then(res => {
                 console.log(res);
               })
@@ -546,7 +546,7 @@ class prohibition extends Component {
         })
 
         for(let i = 0 ; i < selectedRowKeys.length ; i++){
-            axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/update/right/${key[i]}`)
+            axios.put(`http://localhost:8080/api/sp/update/right/${key[i]}`)
             .then(res => console.log(res.data));
         }
     }
@@ -569,7 +569,7 @@ class prohibition extends Component {
         })
 
         for(let i = 0 ; i < selectedRowKeysFalse.length ; i++){
-            axios.put(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/update/left/${key[i]}`)
+            axios.put(`http://localhost:8080/api/sp/update/left/${key[i]}`)
             .then(res => console.log(res));
         }
     }
@@ -590,7 +590,7 @@ class prohibition extends Component {
             
             console.log(insertObj);
 
-            axios.post(`http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/disableapps/insert`, insertObj)
+            axios.post(`http://localhost:8080/api/sp/disableapps/insert`, insertObj)
             .then(res => {
               res.data.key = res.data.idx;
               delete res.data.idx;

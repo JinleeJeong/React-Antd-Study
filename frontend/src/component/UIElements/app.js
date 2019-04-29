@@ -84,7 +84,7 @@ class app extends Component {
         endChoose : new Date(endChoose).toISOString().slice(0, 19)
       }
     
-      axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/disableappusg', requestTime)
+      axios.post('http://localhost:8080/api/sp/disableappusg', requestTime)
       .then((res) => {
         console.log(res.data);
         this.setState({
@@ -164,13 +164,13 @@ class app extends Component {
       confirmLogout = (e) =>{
         var userSession;
         userSession = {
-          userName : sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+          userName : sessionStorage.getItem('')
         }
-          axios.post('http://ec2-54-180-81-120.ap-northeast-2.compute.amazonaws.com:8080/api/sp/logout', userSession)
+          axios.post('http://localhost:8080/api/sp/logout', userSession)
             .then((res) => {
               console.log(res.data)
               message.success('로그아웃 성공했습니다.');
-              sessionStorage.removeItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+              sessionStorage.removeItem('')
               setTimeout(() => {
                 return this.props.history.push('/')
               }, 1000)
