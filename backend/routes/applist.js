@@ -5,7 +5,7 @@ var models = require("../models/index.js");
 const sequelize = require('sequelize');
 var key = require("../config/cry");
 const crypto = require('crypto');
-const ivBuffer = '0000000000000000'
+const ivBuffer = ''
 const Op = sequelize.Op;
 
 var failedResultCode = 400;
