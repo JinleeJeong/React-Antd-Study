@@ -1104,34 +1104,83 @@ router.patch('/pc/members', (req,res,next) => {
 
 router.get('/pc/logs', (req,res,next) => {
     var resultArray = [];
-    models.stlogs.findAll({
-        include : [
-        {
-            model : models.students,
-            attributes : [`name_st`],
-            where : sequelize.where(
-                sequelize.col('stlogs.id_st'),
-                sequelize.col('student.id_st')
-            )
-        }
-    ], attributes : [`id_st`, `logtype`, `logmsg`, `endtime`, `starttime`]})
-    .then((results) => {
-        for(var i = 0; i < results.length; i++){
-            resultArray.push({
-                stId : encrypt(results[i].id_st),
-                stName : encrypt(results[i].student.name_st),
-                logType : results[i].logtype,
-                logContents : encrypt(results[i].logmsg),
-                startTime : results[i].starttime,
-                endTime : results[i].endtime,
+    if(req.headers.usertype === 'M') {
+        console.log("userType Manager");
+        models.managers.findOne({where : {id_user : req.headers.userid},
+            include : [
+                {
+                    model : models.branches, 
+                }
+            ]})
+            .then((results) => {
+                console.log(results.branch.id_br)
+                models.students.findAll({where : {id_br : results.branch.id_br},
+                    include : [
+                    {
+                        model : models.stlogs,
+                        attributes : [`id_st`, `logtype`, `logmsg`, `endtime`, `starttime`],
+                    }
+                ], attributes : [`name_st`, `id_br`]})
+                .then((results) => {
+                    console.log(results);
+                    for(var i = 0; i < results.length; i++){
+                        for(var j = 0 ; j < results[i].stlogs.length; j++){
+                            console.log('Here :', results[i].stlogs[j].id_st);
+                            resultArray.push({
+                                stId : encrypt(results[i].stlogs[j].id_st),
+                                stName : encrypt(results[i].name_st),
+                                logType : results[i].stlogs[j].logtype,
+                                logContents : encrypt(results[i].stlogs[j].logmsg),
+                                startTime : results[i].stlogs[j].starttime,
+                                endTime : results[i].stlogs[j].endtime,
+                            })
+                        }
+                        
+                    }
+                    console.log('Array : ',resultArray);
+                    res.json({resultCode : successResultCode, message : successMessage, logs : resultArray});
+                })
+                .catch(() => {
+                    console.log("Not matching log & students & branch")
+                    res.json("Not matching log & students & branch")
+                });
             })
-        }
-        res.json({resultCode : successResultCode, message : successMessage, logs : resultArray});
-    })
-    .catch(() => {
-        console.log("stlogs Zero")
-        res.json("stlogs Zero")
-    });
+    }
+    else if(req.headers.usertype === 'T'){
+        console.log("userType Teacher");
+        models.students.findAll({where : {id_tc : req.headers.userid},
+            include : [
+            {
+                model : models.stlogs,
+                attributes : [`id_st`, `logtype`, `logmsg`, `endtime`, `starttime`],
+            }
+        ], attributes : [`name_st`, `id_tc`]})
+        .then((results) => {
+            console.log(results);
+            for(var i = 0; i < results.length; i++){
+                for(var j = 0 ; j < results[i].stlogs.length; j++){
+                    console.log('Here :', results[i].stlogs[j].id_st);
+                    resultArray.push({
+                        stId : encrypt(results[i].stlogs[j].id_st),
+                        stName : encrypt(results[i].name_st),
+                        logType : results[i].stlogs[j].logtype,
+                        logContents : encrypt(results[i].stlogs[j].logmsg),
+                        startTime : results[i].stlogs[j].starttime,
+                        endTime : results[i].stlogs[j].endtime,
+                    })
+                }
+                
+            }
+            res.json({resultCode : successResultCode, message : successMessage, logs : results});
+        })
+        .catch(() => {
+            console.log("Not matching log & students & Teacher")
+            res.json("Not matching log & students & Teacher")
+        });
+    }
+    else {
+        res.json("userType Error");
+    }
 })
 
 // ----------------------------------------------------------------logs

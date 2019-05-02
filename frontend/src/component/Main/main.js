@@ -1,53 +1,29 @@
 import React, { Component, Fragment } from 'react';
 import {Doughnut} from 'react-chartjs-2';
 import './main.css';
-import {Layout, Menu, Icon, Popconfirm, message, Button, DatePicker, Select} from 'antd';
+import {Layout, Menu, Icon, Popconfirm, message, Button, DatePicker, Select, Spin} from 'antd';
 import {Link} from 'react-router-dom';
 import axios from 'axios';
-import moment from 'moment';
+var key = require("../../config/cry");
+const crypto = require('crypto');
+const ivBuffer = '';
 
+function decrypt(text){
+  if(typeof text == 'string' && text !== null && text !== 'null'){
+      var decipher = crypto.createDecipheriv('aes-256-cbc', key.crtSecret, ivBuffer);
+      var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
+      decipheredPlaintext += decipher.final('utf8');
+
+      return decipheredPlaintext;
+  }
+  else {
+      return null;
+  }
+}
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
 const {RangePicker} = DatePicker;
 
-const data = {
-	labels: [
-		'메신저',
-		'인터넷',
-
-	],
-	datasets: [{
-		data: [300, 100],
-		backgroundColor: [
-		'#FF6384',
-		'#36A2EB',
-		],
-		hoverBackgroundColor: [
-		'#FF6384',
-		'#36A2EB',
-		]
-    }],
-    text: '45'
-};
-
-const dataSecond = {
-  labels: [
-		'타 인강1',
-		'타 인강2',
-	],
-	datasets: [{
-		data: [300, 100],
-		backgroundColor: [
-		'#86A2EB',
-    '#BFCE56',
-		],
-		hoverBackgroundColor: [
-		'#86A2EB',
-    '#BFCE56',
-		]
-    }],
-    text: '45'
-}
 const Option = Select.Option;
 
 class main extends Component {
@@ -56,17 +32,72 @@ class main extends Component {
       super(props);
 
       this.state = {
-        users : [],
-        startTime: '',
-        endTime: '',
-        startEndTime : [],
+        dashboardAppData : [],
+        dashboardAppLabel : [],
+        dashboardIngangData : [],
+        dashboardIngangLabel : [],
+        chooseToday : 'primary',
+        chooseWeek : 'default',
+        chooseMonth : 'default',
+        loading : false,
       };
       this.onOk = this.onOk.bind(this);
       this.handleChange = this.handleChange.bind(this);
     }
     componentDidMount(){
-      this.setState({
+      axios.get('http://localhost:8080/api/sp/dashboardapp')
+      .then((res) => {
+        var resultsArrayData = [];
+        var resultsArrayLabel = [];
+        if(decrypt(res.data.message) !== 'failed')  {
+          for(var i = 0 ; i< res.data.dashboardapp.length; i++){
+            resultsArrayData.push(
+              res.data.dashboardapp[i].data,
+            )
+            resultsArrayLabel.push(
+              decrypt(res.data.dashboardapp[i].labels)
+            )
+          }
+          this.setState({
+            dashboardAppData : resultsArrayData,
+            dashboardAppLabel : resultsArrayLabel
+          })
+        }
+        else {
+          console.log("Not exist data")
 
+          this.setState({
+            dashboardAppData : [],
+            dashboardAppLabel : []
+          })
+        }
+      })
+
+      axios.get('http://localhost:8080/api/sp/dashboardingang')
+      .then((res) => {
+        var resultsArrayIngangData = [];
+        var resultsArrayIngangLabel = [];
+        if(decrypt(res.data.message) !== 'failed') {
+          for(var i = 0 ; i< res.data.dashboardingang.length; i++){
+            resultsArrayIngangData.push(
+              res.data.dashboardingang[i].data,
+            )
+            resultsArrayIngangLabel.push(
+              decrypt(res.data.dashboardingang[i].labels)
+            )
+          }
+          this.setState({
+            dashboardIngangData : resultsArrayIngangData,
+            dashboardIngangLabel : resultsArrayIngangLabel
+          })
+        }
+        else {
+          console.log("Not exist Data");
+          this.setState({
+            dashboardIngangData : [],
+            dashboardIngangLabel : []
+          })
+        }
       })
     };
 
@@ -74,13 +105,13 @@ class main extends Component {
     confirmLogout = (e) =>{
       var userSession;
       userSession = {
-        userName : sessionStorage.getItem('')
+        userName : sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
       }
-        axios.post('', userSession)
+        axios.post('http://localhost:8080/api/sp/logout', userSession)
           .then((res) => {
             console.log(res.data)
             message.success('로그아웃 성공했습니다.');
-            sessionStorage.removeItem('')
+            sessionStorage.removeItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
             setTimeout(() => {
               return this.props.history.push('/')
             }, 1000)
@@ -98,88 +129,74 @@ class main extends Component {
     }
 
     onOk = (value) => {
-      var a = new Date(value[0]).getTime();
-      var b = new Date(value[1]).getTime();
-      // getTime Function : Date > milliseconds
-      if(a!== b){
-      const {startEndTime, users} = this.state
-      
       this.setState({
-        startTime : value[0],
-        endTime : value[1]
-      }, function() {
-        var firstDate = moment(this.state.startTime._d, 'YYYY/M/D HH:mm')
-        var finishDate = moment(this.state.endTime._d, 'YYYY/M/D HH:mm')
-        var dates = [];
-        firstDate = firstDate.format('YYYY/M/D HH:mm');
-        finishDate = finishDate.format('YYYY/M/D HH:mm');
-        dates.push(firstDate);
-        dates.push(finishDate);
-        this.setState({
-          startEndTime : dates,
-        }, () => {
-          console.log(startEndTime);
-        })
-            // ------------------------------------------------startEndTime setState
-
-        var userTimesSet = [];
-        var sortingNumbers = [];
-        var sortingNumbersNon = [];
-          
-          for(let i = 0; i < users.length ; i++){
-            userTimesSet = (users.map(users => users.startTime));
+        loading : true,
+      })
+      var startChoose = value[0];
+      var endChoose = value[1];
+      startChoose = new Date(startChoose).toISOString().slice(0, 19)
+      endChoose = new Date(endChoose).toISOString().slice(0, 19)
+      var requestTime = {
+        'Content-Type' : 'application/json',
+        'startChoose' : startChoose,
+        'endChoose' : endChoose
+      }
+    
+      axios.post('http://localhost:8080/api/sp/dashboardappdate', {withCredentials: true}, {headers : requestTime})
+      .then((res) => {
+        var resultsArrayData = [];
+        var resultsArrayLabel = [];
+        if(decrypt(res.data.message) !== 'failed'){
+          for(var i = 0 ; i < 5 ; i++){
+            resultsArrayData.push(
+              res.data.dateAppUsage[i].data,
+            )
+            resultsArrayLabel.push(
+              decrypt(res.data.dateAppUsage[i].labels)
+            )
           }
           this.setState({
-            userTimes : userTimesSet,
-          }, () => 
-                  {
-                    for( let i = 0 ;i < users.length ; i++){
-                      
-                      userTimesSet[i] = moment(userTimesSet[i]).format('YYYY/MM/DD HH:mm');
-                      if(moment(userTimesSet[i]).isSameOrAfter(firstDate)){
-                        if(moment(userTimesSet[i]).isSameOrBefore(finishDate)){
-                          sortingNumbers.push(userTimesSet[i]);
-                        } 
-                        else{
-                          sortingNumbersNon.push(userTimesSet[i]);
-                          console.log('not Before')
-                        }
-                      }
-                      else {
-                        sortingNumbersNon.push(userTimesSet[i]);
-                        console.log('not After')
-                      }
-                    }
+            dashboardAppData : resultsArrayData,
+            dashboardAppLabel : resultsArrayLabel,
+          })
+        }
+        else {
+          console.log("Not Exist Today app Data");
+          this.setState({
+            dashboardAppData : [],
+            dashboardAppLabel : []
+          })
+        }
+      })
 
-                    this.setState({
-                      sortingNumbers : sortingNumbers,
-                      sortingNumbersNon : sortingNumbersNon
-                    }, () => { 
-                      const { users, sortingNumbers, sortingNumbersNon } = this.state
-                      console.log('SortingNumbers : ' + sortingNumbers );
-                      console.log('SortingNumbersNon : ' + sortingNumbersNon );
-                      function arrFilter(users) {
-                        for(let i = 0; i < sortingNumbers.length; i++){
-                          if(users.startTime === sortingNumbers[i]){
-                            return true;
-                          }
-                        }
-                        return false;
-                      }
-
-                      var sortingDates = users.filter(arrFilter);
-                      this.setState({
-                        users : sortingDates
-                      })
-                    }
-                  )
-                })
-              });
-              
-            }
-      else (
-        alert('시간을 확인해주세요.')
-      )
+      axios.post('http://localhost:8080/api/sp/dashboardingangdate', {withCredentials: true}, {headers : requestTime})
+      .then((res) => {
+        var resultsArrayData = [];
+        var resultsArrayLabel = [];
+        if(decrypt(res.data.message) !== 'failed'){
+          for(var i = 0 ; i < res.data.dateIngangUsage.length ; i++){
+            resultsArrayData.push(
+              res.data.dateIngangUsage[i].data,
+            )
+            resultsArrayLabel.push(
+              decrypt(res.data.dateIngangUsage[i].labels)
+            )
+          }
+          this.setState({
+            dashboardIngangData : resultsArrayData,
+            dashboardIngangLabel : resultsArrayLabel,
+            loading : false,
+          })
+        }
+        else {
+          console.log("Not Exist Today app Data");
+          this.setState({
+            dashboardIngangData : [],
+            dashboardIngangLabel : [],
+            loading : false,
+          })
+        }
+      })
 }
     // ============================= DatePicker
 
@@ -188,7 +205,270 @@ class main extends Component {
       console.log(`selected ${value}`);
     }
     // ============================= Select Fc
+
+    // ====================================================Today====================================================
+    clickToday = () => {
+      console.log("Today");
+      this.setState({
+        chooseToday : 'primary',
+        chooseWeek : 'default',
+        chooseMonth : 'default',
+        loading : true,
+
+      })
+      axios.get('http://localhost:8080/api/sp/dashboardapp')
+      .then((res) => {
+        var resultsArrayData = [];
+        var resultsArrayLabel = [];
+        if(decrypt(res.data.message) !== 'failed'){
+          for(var i = 0 ; i< res.data.dashboardapp.length; i++){
+            resultsArrayData.push(
+              res.data.dashboardapp[i].data,
+            )
+            resultsArrayLabel.push(
+              decrypt(res.data.dashboardapp[i].labels)
+            )
+          }
+          this.setState({
+            dashboardAppData : resultsArrayData,
+            dashboardAppLabel : resultsArrayLabel
+          })
+        }
+        else {
+          console.log("Not Exist Today app Data");
+          this.setState({
+            dashboardAppData : [],
+            dashboardAppLabel : []
+          })
+        }
+      })
+
+      axios.get('http://localhost:8080/api/sp/dashboardingang')
+      .then((res) => {
+        var resultsArrayIngangData = [];
+        var resultsArrayIngangLabel = [];
+        if(decrypt(res.data.message) !== 'failed'){
+          
+          for(var i = 0 ; i< res.data.dashboardingang.length; i++){
+            resultsArrayIngangData.push(
+              res.data.dashboardingang[i].data,
+            )
+            resultsArrayIngangLabel.push(
+              decrypt(res.data.dashboardingang[i].labels)
+            )
+          }
+          this.setState({
+            dashboardIngangData : resultsArrayIngangData,
+            dashboardIngangLabel : resultsArrayIngangLabel,
+            loading : false,
+          })
+        }
+        else {
+          console.log("Not Exist Today ingang Data");
+          this.setState({
+            dashboardIngangData : [],
+            dashboardIngangLabel : [],
+            loading : false,
+          })
+        }
+      })
+    }
+
+    // ====================================================Week====================================================
+    clickWeek = () => {
+
+      const date = {
+        date : 'week'
+      };
+      console.log("Week");
+
+      this.setState({
+        chooseToday : 'default',
+        chooseWeek : 'primary',
+        chooseMonth : 'default',
+        loading : true,
+      })
+      axios.post('http://localhost:8080/api/sp/dashboardapp', date)
+      .then((res) => {
+        var resultsArrayData = [];
+        var resultsArrayLabel = [];
+        if(decrypt(res.data.message) !== 'failed') {
+          for(var i = 0 ; i< res.data.dashboardapp.length; i++){
+            resultsArrayData.push(
+              res.data.dashboardapp[i].data,
+            )
+            resultsArrayLabel.push(
+              decrypt(res.data.dashboardapp[i].labels)
+            )
+          }
+          this.setState({
+            dashboardAppData : resultsArrayData,
+            dashboardAppLabel : resultsArrayLabel
+          })
+        }
+        else {
+          console.log("Not Exist Week app Data");
+          this.setState({
+            dashboardAppData : [],
+            dashboardAppLabel : []
+          })
+        }
+        
+      })
+
+      axios.post('http://localhost:8080/api/sp/dashboardingang', date)
+      .then((res) => {
+        var resultsArrayIngangData = [];
+        var resultsArrayIngangLabel = [];
+        if(decrypt(res.data.message) !== 'failed') {
+          for(var i = 0 ; i< res.data.dashboardingang.length; i++){
+            resultsArrayIngangData.push(
+              res.data.dashboardingang[i].data,
+            )
+            resultsArrayIngangLabel.push(
+              decrypt(res.data.dashboardingang[i].labels)
+            )
+          }
+          this.setState({
+            dashboardIngangData : resultsArrayIngangData,
+            dashboardIngangLabel : resultsArrayIngangLabel,
+            loading : false,
+          })
+        }
+        else {
+          console.log("Not Exist Week ingang Data");
+          this.setState({
+            dashboardIngangData : [],
+            dashboardIngangLabel : [],
+            loading : false,
+            
+          })
+        }
+        
+      })
+    }
+
+    // ====================================================Month====================================================
+    clickMonth = () => {
+
+      const date = {
+        date : 'month'
+      };
+      console.log("Month");
+      this.setState({
+        chooseToday : 'default',
+        chooseWeek : 'default',
+        chooseMonth : 'primary',
+        loading : true,
+      })
+      axios.post('http://localhost:8080/api/sp/dashboardapp', date)
+      .then((res) => {
+        var resultsArrayData = [];
+        var resultsArrayLabel = [];
+        if(decrypt(res.data.message) !== 'failed') {
+          for(var i = 0 ; i< res.data.dashboardapp.length; i++){
+            resultsArrayData.push(
+              res.data.dashboardapp[i].data,
+            )
+            resultsArrayLabel.push(
+              decrypt(res.data.dashboardapp[i].labels)
+            )
+          }
+          this.setState({
+            dashboardAppData : resultsArrayData,
+            dashboardAppLabel : resultsArrayLabel
+          })
+        }
+        else {
+          console.log("Not Exist Month app Data");
+          this.setState({
+            dashboardAppData : [],
+            dashboardAppLabel : []
+          })
+        }
+        
+      })
+
+      axios.post('http://localhost:8080/api/sp/dashboardingang', date)
+      .then((res) => {
+        var resultsArrayIngangData = [];
+        var resultsArrayIngangLabel = [];
+        if(decrypt(res.data.message) !== 'failed') {
+          for(var i = 0 ; i< res.data.dashboardingang.length; i++){
+            resultsArrayIngangData.push(
+              res.data.dashboardingang[i].data,
+            )
+            resultsArrayIngangLabel.push(
+              decrypt(res.data.dashboardingang[i].labels)
+            )
+          }
+          this.setState({
+            dashboardIngangData : resultsArrayIngangData,
+            dashboardIngangLabel : resultsArrayIngangLabel,
+            loading : false,
+          })
+        }
+        else {
+          console.log("Not Exist Month ingang Data");
+          this.setState({
+            dashboardIngangData : [],
+            dashboardIngangLabel : [],
+            loading : false,
+          })
+        }
+        
+      })
+    }
+
+
       render() {
+        const {dashboardAppData, dashboardAppLabel, dashboardIngangData, dashboardIngangLabel} = this.state;
+        const data = {
+          labels: dashboardAppLabel,
+          datasets: [{
+            data: dashboardAppData,
+            backgroundColor: [
+            '#FF6384',
+            '#36A2EB',
+            '#FFE4C4',
+            '#00FFFF',
+            '#BDB76B',
+
+            ],
+            hoverBackgroundColor: [
+            '#FF6384',
+            '#36A2EB',
+            '#FFE4C4',
+            '#00FFFF',
+            '#BDB76B',
+
+            ]
+            }],
+            text: '45'
+        };
+        const dataSecond = {
+          labels: dashboardIngangLabel,
+          datasets: [{
+            data: dashboardIngangData,
+            backgroundColor: [
+            '#86A2EB',
+            '#FFFF00',
+            '#00FF00',
+            '#663399',
+            '#FF6347'
+            ],
+            hoverBackgroundColor: [
+            '#86A2EB',
+            '#FFFF00',
+            '#00FF00',
+            '#663399',
+            '#FF6347'
+            ]
+            }],
+            text: '45'
+        };
+        console.log(dashboardIngangData)
+        console.log(dashboardIngangLabel)
 
         return (
             <Layout style={{ minHeight: '100vh' }}>
@@ -243,9 +523,9 @@ class main extends Component {
             <div style={{background: '#fff',margin : 32}}>
               <div style={{height: "7vh"}}>
                 <div style={{paddingTop : 32}}>
-                  <Button type="primary" style={{marginLeft : 32, width : 50, paddingLeft : 10}}>오늘</Button>
-                  <Button type="default" style={{marginLeft : 10, width : 78, paddingLeft : 10}}>최근 7일</Button>
-                  <Button type="default" style={{marginLeft : 10, width : 78, paddingLeft : 8}}>최근 30일</Button>
+                  <Button onClick={this.clickToday} type={this.state.chooseToday} style={{marginLeft : 32, width : 50, paddingLeft : 10}}>오늘</Button>
+                  <Button onClick={this.clickWeek} type={this.state.chooseWeek} style={{marginLeft : 10, width : 78, paddingLeft : 10}}>최근 7일</Button>
+                  <Button onClick={this.clickMonth} type={this.state.chooseMonth} style={{marginLeft : 10, width : 78, paddingLeft : 8}}>최근 30일</Button>
                   <RangePicker
                     showTime={{ format: 'HH:mm' }}
                     format="YYYY-MM-DD HH:mm"
@@ -258,7 +538,7 @@ class main extends Component {
               </div>
                 <div style={{height: "35vh", width: "auto", display:"flex"}}>
                 
-                    <div style={{flex : "1", marginTop : 0, marginBottom : "5vh", paddingLeft : 200}}>
+                    <div style={{flex : "1", marginTop : 20, marginBottom : "5vh", paddingLeft : 100}}>
                         <Doughnut 
                         data={data}
                         width={250}
@@ -266,13 +546,13 @@ class main extends Component {
                         options={{
                             legend : {
                                 display: true,
-                                position: 'bottom',
+                                position: 'right',
                                 labels: {
-                                    fontSize: 19,
+                                    fontSize: 15,
                                     fontColor: "black",
                                     fonrWeight : 800,
                                     fontFamily : "sans-serif",
-                                    padding : 30
+                                    padding : 20
                                 }
                             },
                             title : {
@@ -281,28 +561,28 @@ class main extends Component {
                                 color : "black",
                                 fontSize : 25,
                                 position : "top",
-                                padding : 30
+                                padding : 10
                             },
                                 responsive: true,
                                 maintainAspectRatio: false,
                         }}/>
                     </div>
                         
-                    <div style={{flex : "1", marginTop : 0, marginBottom : "5vh", marginRight :400}}>
+                    <div style={{flex : "1", marginTop : 20, marginBottom : "5vh", marginRight :400}}>
                         <Doughnut                 
                             data={dataSecond} 
-                            width={100}
-                            height={50}
+                            width={250}
+                            height={200}
                             options={{
                             legend : {
                                 display: true,
-                                position: 'bottom',
+                                position: 'right',
                                 labels: {
-                                    fontSize: 17,
+                                    fontSize: 15,
                                     fontColor: "black",
                                     fonrWeight : 800,
                                     fontFamily : "sans-serif",
-                                    padding : 30
+                                    padding : 20
                                 }
                             },
                             title : {
@@ -311,7 +591,7 @@ class main extends Component {
                                 color : "black",
                                 fontSize : 25,
                                 position : "top",
-                                padding : 30
+                                padding : 10
                             },
                                 responsive: true,
                                 maintainAspectRatio: false,
@@ -320,6 +600,11 @@ class main extends Component {
                     </div>
                 </div>    
             </div>
+
+            <div style={{textAlign : "center", height: 10}}>
+              <Spin spinning={this.state.loading} style={{fontSize : 15}}></Spin>
+            </div>
+
             <div style={{background: '#fff',margin : 32}}>
               <div style={{height: "7vh"}}>
                 <div style={{paddingTop : 32}}>
@@ -336,7 +621,7 @@ class main extends Component {
               </div>
                 <div style={{height: "35vh", width: "auto", display:"flex"}}>
                 
-                    <div style={{flex : "1", marginTop : 0, marginBottom : "5vh", paddingLeft : 200}}>
+                    <div style={{flex : "1", marginTop : 20, marginBottom : "5vh", paddingLeft : 100}}>
                         <Doughnut 
                         data={data}
                         width={250}
@@ -344,13 +629,13 @@ class main extends Component {
                         options={{
                             legend : {
                                 display: true,
-                                position: 'bottom',
+                                position: 'right',
                                 labels: {
-                                    fontSize: 19,
+                                    fontSize: 15,
                                     fontColor: "black",
                                     fonrWeight : 800,
                                     fontFamily : "sans-serif",
-                                    padding : 30
+                                    padding : 20
                                 }
                             },
                             title : {
@@ -359,28 +644,28 @@ class main extends Component {
                                 color : "black",
                                 fontSize : 25,
                                 position : "top",
-                                padding : 30
+                                padding : 10
                             },
                                 responsive: true,
                                 maintainAspectRatio: false,
                         }}/>
                     </div>
                         
-                    <div style={{flex : "1", marginTop : 0, marginBottom : "5vh", marginRight :400}}>
+                    <div style={{flex : "1", marginTop : 20, marginBottom : "5vh", marginRight :400}}>
                         <Doughnut                 
                             data={dataSecond} 
-                            width={100}
-                            height={50}
+                            width={250}
+                            height={200}
                             options={{
                             legend : {
                                 display: true,
-                                position: 'bottom',
+                                position: 'right',
                                 labels: {
-                                    fontSize: 17,
+                                    fontSize: 15,
                                     fontColor: "black",
                                     fonrWeight : 800,
                                     fontFamily : "sans-serif",
-                                    padding : 30
+                                    padding : 20
                                 }
                             },
                             title : {
@@ -389,7 +674,7 @@ class main extends Component {
                                 color : "black",
                                 fontSize : 25,
                                 position : "top",
-                                padding : 30
+                                padding : 10
                             },
                                 responsive: true,
                                 maintainAspectRatio: false,
