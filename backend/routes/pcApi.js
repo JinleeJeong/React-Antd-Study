@@ -7,7 +7,6 @@ var sequelize = require('sequelize')
 var key = require("../config/cry");
 const crypto = require('crypto');
 const Op = sequelize.Op;
-const ivBuffer = '0000000000000000'
 var failedMessage = 'failed';
 var failedResultCode = 400;
 var successResultCode = 200;

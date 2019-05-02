@@ -2,27 +2,7 @@ var express = require('express');
 var router = express.Router();
 var models = require("../models/index.js");
 const crypto = require('crypto');
-var key = '3de222e0600511e98647d663bd873d93';
 
-function encrypt(text,key){
-
-     var cipher = crypto.createCipher('aes-256-cbc',key); 
-     var encipheredContent = cipher.update(text,'utf8','base64'); 
-     encipheredContent += cipher.final('base64');
- 
-     return encipheredContent;
- }
- /* 암호화에서 문자열 16자 이하면, update는 null값을 가진다. 
-  항상 update + final 형식으로 암호화를 해야한다.
- *** Key값은 클라이언트에 노출되지 않도록 한다. *** */
-function decrypt(text,key){
-
-  var decipher = crypto.createDecipher('aes-256-cbc',key);
-  var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
-  decipheredPlaintext += decipher.final('utf8');
-
-  return decipheredPlaintext;
-}
   router.get('/pc/ltest', (req,res, next) => {
     
     var userid = "M";
