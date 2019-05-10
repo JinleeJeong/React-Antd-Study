@@ -34,8 +34,7 @@ class app extends Component {
             sorter: (a,b) => this.compStringReverse(a.appName, b.appName),
             defaultSortOrder: 'descend',
             
-          }, 
-          
+          },
           {
             title: '앱 ID',
             dataIndex: 'appId',
