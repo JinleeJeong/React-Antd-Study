@@ -5,7 +5,6 @@ import axios from 'axios'
 import Highlighter from 'react-highlight-words';
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
-
 const formItemLayout = {
   labelCol: { span: 1 },
   wrapperCol: { span: 23 },
