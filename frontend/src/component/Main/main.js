@@ -44,6 +44,7 @@ class main extends Component {
       this.onOk = this.onOk.bind(this);
       this.handleChange = this.handleChange.bind(this);
     }
+  
     componentDidMount(){
       axios.get('http://localhost:8080/api/sp/dashboardapp')
       .then((res) => {
