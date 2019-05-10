@@ -58,7 +58,6 @@ class student extends Component {
             ...this.getColumnSearchProps('appName'),
             sorter: (a, b) => this.compStringReverse(a.appName, b.appName),
           }, 
-            
           {
               title: '앱 ID',
               dataIndex: 'appId',
