@@ -59,8 +59,6 @@ class ingang extends Component {
         },
         // -----------------------------Operation
       ];
-
-      
     }
     cancel = () => {
       this.setState({ editingKey: '' });
