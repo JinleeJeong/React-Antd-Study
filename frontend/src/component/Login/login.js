@@ -18,7 +18,6 @@ class login extends Component {
         this.handleSubmit = this.handleSubmit.bind(this);
     }
     componentDidMount(){
-
     }
     handleSubmit = (e) => {
         e.preventDefault();
