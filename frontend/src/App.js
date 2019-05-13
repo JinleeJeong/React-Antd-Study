@@ -11,7 +11,7 @@ import update from './component/Setting/update';
 import { message } from 'antd';
 
 // import Cookies from 'js-cookie';
-// Don't forget to include the CSS styles for antd!
+// Don't forget to include the CSS styles for antd
 // ----------------------------
 
 class App extends Component {
