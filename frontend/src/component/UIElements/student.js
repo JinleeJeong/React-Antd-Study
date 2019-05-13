@@ -18,12 +18,6 @@ class student extends Component {
         users : [],
         searchText: '',
         loading : false,
-
-        // startTime: '',
-        // endTime: '',
-        // usersTimes : [],
-        // sortingNumbersNon : [],
-        // sortingNumbers : [],
       }
       
       this.onOk = this.onOk.bind(this);
