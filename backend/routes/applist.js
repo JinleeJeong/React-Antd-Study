@@ -9,7 +9,6 @@ const ivBuffer = ''
 const Op = sequelize.Op;
 
 var failedResultCode = 400;
-
 var successResultCode = 200;
 
 function encrypt(text){
