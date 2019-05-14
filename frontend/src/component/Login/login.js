@@ -1,36 +1,42 @@
 import React, { Component } from 'react';
 import { Button, Form, Input, Icon, message } from 'antd';
-import './login.css';
 import axios from 'axios';
-// import Cookies from 'js-cookie';
-// console.log(Cookies.get(result.data.It_branches_id_br));
+import loginImage from '../Image/loginPage.PNG';
+
 class login extends Component {
     constructor(props) {
       super(props);
+
 
     this.state = {
         loading: false,
             formFieldInput : {
                 id : '',
                 password: '',
-            }    
+            },
+        ApiUrl : '',    
         };
         this.handleSubmit = this.handleSubmit.bind(this);
     }
     componentDidMount(){
+        console.log(this.props.url)
+        this.setState({
+            ApiUrl : this.props.url
+        })
     }
     handleSubmit = (e) => {
         e.preventDefault();
-        
+        const {ApiUrl} = this.state
         this.props.form.validateFields((err, values) => {
           if (!err) {
             var loginHeaders = {
                 'Content-Type' : 'application/json',
-                 'userId' : values.userId,
-                  'userPw' :values.userPw
+                'userId' : values.userId,
+                'userPw' : values.userPw
             }
-                axios.post('', {withCredentials: true}, {headers : loginHeaders})
+                axios.post(ApiUrl+'/api/sp/login', {withCredentials: true}, {headers : loginHeaders})
                 .then(result => {
+                    console.log(result.data);
                     if(result.data.message !== 'failed') {
                         var messageResult = result.data.userName.concat(" : success")
                         message.success(messageResult);
@@ -59,22 +65,24 @@ class login extends Component {
         const { getFieldDecorator } = this.props.form;
 
         return (
-            <div className = "login" style={{height : "100vh"}}>
-                    <div style={{textAlign : "center"}} >
-                        <div style={{position:"relative", top:"32vh", display: "inline-block", width : "40vh", height : "35vh", backgroundColor : "white", padding:"2.5vh"}}>
+            <div className = "login">
+                    <div style={{textAlign : "center", height : "100vh"}}>
+                   
+                    <div style={{height: "30%", paddingTop : "20vh", marginRight : 15}}>
+                        <img src ={loginImage} alt = "login" width = "150px" height ="auto" ></img>
+                    </div>
+                        <div style={{display: "inline-block", width : "40vh", height : "30vh", backgroundColor : "white", padding:"6vh 8vh 8vh 8vh", border : "1px solid silver"}}>
+                       
                             <Form onSubmit={this.handleSubmit} className="login-form">
-                            <Form.Item>
-                                    <div style ={{fontSize : "3vh", marginBottom :"2vh" }}>로그인</div>
-
-                            </Form.Item>
-                            <Form.Item>
+                            
+                            <Form.Item style={{marginBottom:0, marginTop : "1vh"}}>
                             {getFieldDecorator('userId', {
                                 rules: [{ required: true, message: 'Please input your Id!' }],
                             })(
-                                <Input prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)' }} />} placeholder="서버 관리자" />
+                                <Input prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)'}} />} placeholder="서버 관리자" />
                             )}
                             </Form.Item>
-                            <Form.Item>
+                            <Form.Item style={{marginBottom:10}}>
                             {getFieldDecorator('userPw', {
                                 rules: [{ required: true, message: 'Please input your Password!' }],
                             })(
@@ -84,7 +92,7 @@ class login extends Component {
                             <Form.Item>
                         
                             <Button style={{width : "100%"}}type="primary" htmlType="submit" className="login-form-button" loading = {this.state.loading} onClick = {this.enterLoading}>
-                                Log in
+                                로그인
 
                             </Button>
                             </Form.Item>
