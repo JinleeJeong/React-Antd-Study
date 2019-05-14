@@ -5,7 +5,6 @@ var jwt = require('jsonwebtoken');
 var secretObj = require('../config/jwt');
 var key = require("../config/cry");
 var sequelize = require('sequelize')
-
 const crypto = require('crypto');
 
 var failedResultCode = 400;
