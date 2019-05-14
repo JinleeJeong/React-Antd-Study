@@ -1,125 +1,64 @@
 import React, { Component } from 'react';
-import { Button, Form, Input, Icon, message } from 'antd';
-import axios from 'axios';
-import loginImage from '../Image/loginPage.PNG';
-var key = require("../../config/cry");
-const crypto = require('crypto');
-const ivBuffer = '0000000000000000';
+import {BrowserRouter, Route} from 'react-router-dom';
+import Student from './component/UIElements/student';
+import Apps from './component/UIElements/app';
+import Login from './component/Login/login';
+import Ingang from './component/UIElements/ingang';
+import Main from './component/Main/main';
+import Prohibition from './component/Setting/prohibition';
+import Update from './component/Setting/update';
+import { message } from 'antd';
+var api = require('./config/apiUrl');
 
+// Don't forget to include the CSS styles for antd!
+// ----------------------------
+var ApiUrl = api.apiUrl;
 
-function decrypt(text){
-    if(typeof text == 'string' && text !== null && text !== 'null'){
-        var decipher = crypto.createDecipheriv('aes-256-cbc', key.crtSecret, ivBuffer);
-        var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
-        decipheredPlaintext += decipher.final('utf8');
-
-        return decipheredPlaintext;
+class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
     }
+  }
+  componentDidMount(){
+
+    var userSession;
+    userSession = sessionStorage.getItem('')
+    if(window.location.pathname !== '/'){
+      if(userSession !== null){
+        return
+      }
+      else {
+        message.warning("다시 로그인 하세요.")
+        setTimeout(() => {
+          window.location.assign('/');
+        }, 1500)
+
+        
+      }
+  }
     else {
-        return null;
+      console.log("Login");
     }
+  };
+
+  render() {
+    return (
+      <BrowserRouter>
+        <div className="App">
+
+          <Route exact path ="/" component={(props) => (<Login url ={ApiUrl} {...props} />)} />
+          <Route path = "/main" component = {(props) => (<Main url ={ApiUrl} {...props} />)} />
+          <Route path = "/prohibition" component = {(props) => (<Prohibition url ={ApiUrl} {...props} />)} />
+          <Route path = "/update" component = {(props) => (<Update url ={ApiUrl} {...props} />)} />
+
+          <Route path = "/student" component = {(props) => (<Student url ={ApiUrl} {...props} />)} />
+          <Route path = "/app" component = {(props) => (<Apps url ={ApiUrl} {...props} />)} />
+          <Route path = "/ingang" component = {(props) => (<Ingang url ={ApiUrl} {...props} />)} />
+        </div>
+      </BrowserRouter>
+    );
+  }
 }
 
-class login extends Component {
-    constructor(props) {
-      super(props);
-
-
-    this.state = {
-        loading: false,
-            formFieldInput : {
-                id : '',
-                password: '',
-            },
-        ApiUrl : '',    
-        };
-        this.handleSubmit = this.handleSubmit.bind(this);
-    }
-    componentDidMount(){
-        console.log(this.props.url)
-        this.setState({
-            ApiUrl : this.props.url
-        })
-    }
-    handleSubmit = (e) => {
-        e.preventDefault();
-        const {ApiUrl} = this.state
-        this.props.form.validateFields((err, values) => {
-          if (!err) {
-            var loginHeaders = {
-                'Content-Type' : 'application/json',
-                'userId' : values.userId,
-                'userPw' : values.userPw
-            }
-                axios.post(ApiUrl+'/api/sp/login', {withCredentials: true}, {headers : loginHeaders})
-                .then(result => {
-                    console.log(result.data);
-                    if(decrypt(result.data.message) !== 'failed') {
-                        var messageResult = decrypt(result.data.userName).concat(" : success")
-                        message.success(messageResult);
-                        sessionStorage.setItem('', decrypt(result.data.userName))
-                        setTimeout(() => {
-                            this.props.history.push(`/main`)
-                            return window.location.reload();
-                          }, 1000)
-                    } else {
-                        message.error('사용자 정보를 확인해주세요.');
-                        this.setState({loading : false});
-                    }
-                })
-        }
-        else {
-            message.error('사용자 정보를 확인해주세요.');
-            this.setState({loading : false});
-            }
-        });
-    };
-    
-    enterLoading = () => {
-        this.setState({loading : true});
-    }
-      render() {
-        const { getFieldDecorator } = this.props.form;
-
-        return (
-            <div className = "login">
-                    <div style={{textAlign : "center", height : "100vh"}}>
-                   
-                    <div style={{height: "30%", paddingTop : "20vh", marginRight : 15}}>
-                        <img src ={loginImage} alt = "login" width = "150px" height ="auto" ></img>
-                    </div>
-                        <div style={{display: "inline-block", width : "40vh", height : "30vh", backgroundColor : "white", padding:"6vh 8vh 8vh 8vh", border : "1px solid silver"}}>
-                       
-                            <Form onSubmit={this.handleSubmit} className="login-form">
-                            
-                            <Form.Item style={{marginBottom:0, marginTop : "1vh"}}>
-                            {getFieldDecorator('userId', {
-                                rules: [{ required: true, message: 'Please input your Id!' }],
-                            })(
-                                <Input prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)'}} />} placeholder="서버 관리자" />
-                            )}
-                            </Form.Item>
-                            <Form.Item style={{marginBottom:10}}>
-                            {getFieldDecorator('userPw', {
-                                rules: [{ required: true, message: 'Please input your Password!' }],
-                            })(
-                                <Input prefix={<Icon type="lock" style={{ color: 'rgba(0,0,0,.25)' }} />} type="password" placeholder="관리자 비밀번호" />
-                            )}
-                            </Form.Item>
-                            <Form.Item>
-                        
-                            <Button style={{width : "100%"}}type="primary" htmlType="submit" className="login-form-button" loading = {this.state.loading} onClick = {this.enterLoading}>
-                                로그인
-
-                            </Button>
-                            </Form.Item>
-                        </Form>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-};
-const WrappedNormalLoginForm = Form.create({ name: 'normal_login' })(login);
-
-export default WrappedNormalLoginForm;
+export default App;
