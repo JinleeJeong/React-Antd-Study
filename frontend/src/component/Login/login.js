@@ -18,12 +18,6 @@ class login extends Component {
         };
         this.handleSubmit = this.handleSubmit.bind(this);
     }
-    componentDidMount(){
-        console.log(this.props.url)
-        this.setState({
-            ApiUrl : this.props.url
-        })
-    }
     handleSubmit = (e) => {
         e.preventDefault();
         const {ApiUrl} = this.state
