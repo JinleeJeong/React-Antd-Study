@@ -8,18 +8,6 @@ var key = require("../../config/cry");
 const crypto = require('crypto');
 const ivBuffer = '';
 
-function decrypt(text){
-  if(typeof text == 'string' && text !== null && text !== 'null'){
-      var decipher = crypto.createDecipheriv('aes-256-cbc', key.crtSecret, ivBuffer);
-      var decipheredPlaintext = decipher.update(text, 'base64', 'utf8');
-      decipheredPlaintext += decipher.final('utf8');
-
-      return decipheredPlaintext;
-  }
-  else {
-      return null;
-  }
-}
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
 const {RangePicker} = DatePicker;
