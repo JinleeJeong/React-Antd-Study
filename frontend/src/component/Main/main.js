@@ -4,9 +4,6 @@ import './main.css';
 import {Layout, Menu, Icon, Popconfirm, message, Button, DatePicker, Select, Spin} from 'antd';
 import {Link} from 'react-router-dom';
 import axios from 'axios';
-var key = require("../../config/cry");
-const crypto = require('crypto');
-const ivBuffer = '';
 
 const { Header, Content, Sider } = Layout;
 const {SubMenu} = Menu;
@@ -94,13 +91,13 @@ class main extends Component {
     confirmLogout = (e) =>{
       var userSession;
       userSession = {
-        userName : sessionStorage.getItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+        userName : sessionStorage.getItem('')
       }
         axios.post('http://localhost:8080/api/sp/logout', userSession)
           .then((res) => {
             console.log(res.data)
             message.success('로그아웃 성공했습니다.');
-            sessionStorage.removeItem('a09u940au509234u@3o30au509234u@3o3==a09u940au509234u@3o3==320i230so#232ltatw54324sd##@$)#($@12')
+            sessionStorage.removeItem('')
             setTimeout(() => {
               return this.props.history.push('/')
             }, 1000)
