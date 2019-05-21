@@ -6,17 +6,6 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var body = require('body-parser');
 var app = express();
-var models = require('./models/index');
-
-var certification = require('./routes/certification');
-var applist = require('./routes/applist');
-var appverinfo = require('./routes/appverinfo');
-var loginlogs = require('./routes/loginlogs');
-var usage = require('./routes/usage');
-var pcApi = require('./routes/pcApi');
-var students = require('./routes/students');
-var teachers = require('./routes/teachers');
-// ------------ Connection
 
 models.sequelize.sync().then( () => {
   console.log("✓ DB connection success.")
@@ -49,14 +38,7 @@ app.use(function(req, res, next) {
   res.header('Access-Control-Allow-Credentials', true);
   next();
 });
-app.use('/api', certification);
-app.use('/api', applist);
-app.use('/api', loginlogs);
-app.use('/api', usage);
-app.use('/api', pcApi);
-app.use('/api', students);
-app.use('/api', teachers);
-app.use('/api', appverinfo);
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
